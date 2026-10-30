@@ -3,15 +3,136 @@
   "created": "2026-10-30",
   "documents": [
     {
-      "id": "EXAMPLE",
+      "id": "UFGS-03-30-00",
       "doc_type": "spec",
-      "section_code": "XX XX XX",
-      "title": "replace",
-      "release": "UFGS-YYYY-MM",
-      "url": "https://www.wbdg.org/dod/ufgs",
-      "downloaded": "YYYY-MM-DD",
-      "local_path": "data/specs/....pdf",
-      "sha256": "fill-by-script"
+      "section_code": "03 30 00",
+      "title": "UFGS 03 30 00 Cast-In-Place Concrete",
+      "release": "UFGS-2026-08",
+      "url": "https://nibs-s3-wbdg3-production.s3.us-east-1.amazonaws.com/FFC/DOD/UFGS/UFGS%2003%2030%2000.pdf",
+      "downloaded": "2026-10-30",
+      "local_path": "data/specs/UFGS_03_30_00.pdf",
+      "sha256": "4200829a58a9eb3e9fda2fbbe501f417fd05dbbafc2564744f29edcb8dc5523e"
+    },
+    {
+      "id": "UFGS-07-54-19",
+      "doc_type": "spec",
+      "section_code": "07 54 19",
+      "title": "UFGS 07 54 19 Polyvinyl Chloride Roofing",
+      "release": "UFGS-2026-08",
+      "url": "https://nibs-s3-wbdg3-production.s3.us-east-1.amazonaws.com/FFC/DOD/UFGS/UFGS%2007%2054%2019.pdf",
+      "downloaded": "2026-10-30",
+      "local_path": "data/specs/UFGS_07_54_19.pdf",
+      "sha256": "15f59bd6b4ac44def4e5befc12f9eacffcf98bd0784ae1544690fb42e7a94b9d"
+    },
+    {
+      "id": "UFGS-07-92-00",
+      "doc_type": "spec",
+      "section_code": "07 92 00",
+      "title": "UFGS 07 92 00 Joint Sealants",
+      "release": "UFGS-2026-08",
+      "url": "https://nibs-s3-wbdg3-production.s3.us-east-1.amazonaws.com/FFC/DOD/UFGS/UFGS%2007%2092%2000.pdf",
+      "downloaded": "2026-10-30",
+      "local_path": "data/specs/UFGS_07_92_00.pdf",
+      "sha256": "3522be7a117d414fbe5354032ea544d5c20f4d044ecbadcb76d42949e6ac97d0"
+    },
+    {
+      "id": "UFGS-08-11-13",
+      "doc_type": "spec",
+      "section_code": "08 11 13",
+      "title": "UFGS 08 11 13 Steel Doors and Frames",
+      "release": "UFGS-2026-08",
+      "url": "https://nibs-s3-wbdg3-production.s3.us-east-1.amazonaws.com/FFC/DOD/UFGS/UFGS%2008%2011%2013.pdf",
+      "downloaded": "2026-10-30",
+      "local_path": "data/specs/UFGS_08_11_13.pdf",
+      "sha256": "d3e2caffbc53a6e088a901406da795f5d536a627ffb8e48b4ea199a7a01f4da0"
+    },
+    {
+      "id": "UFGS-08-51-13",
+      "doc_type": "spec",
+      "section_code": "08 51 13",
+      "title": "UFGS 08 51 13 Aluminum Windows",
+      "release": "UFGS-2026-08",
+      "url": "https://nibs-s3-wbdg3-production.s3.us-east-1.amazonaws.com/FFC/DOD/UFGS/UFGS%2008%2051%2013.pdf",
+      "downloaded": "2026-10-30",
+      "local_path": "data/specs/UFGS_08_51_13.pdf",
+      "sha256": "c5de6b8ee7c0c37afb804840ef430a30409472344db30e05254bea89012823f1"
+    },
+    {
+      "id": "UFGS-09-29-00",
+      "doc_type": "spec",
+      "section_code": "09 29 00",
+      "title": "UFGS 09 29 00 Gypsum Board",
+      "release": "UFGS-2026-08",
+      "url": "https://nibs-s3-wbdg3-production.s3.us-east-1.amazonaws.com/FFC/DOD/UFGS/UFGS%2009%2029%2000.pdf",
+      "downloaded": "2026-10-30",
+      "local_path": "data/specs/UFGS_09_29_00.pdf",
+      "sha256": "a836584edd9931f78455d05673e79bff5aab9734dad9285f5bfe12112850cbc4"
+    },
+    {
+      "id": "UFGS-09-51-00",
+      "doc_type": "spec",
+      "section_code": "09 51 00",
+      "title": "UFGS 09 51 00 Acoustical Ceilings",
+      "release": "UFGS-2026-08",
+      "url": "https://nibs-s3-wbdg3-production.s3.us-east-1.amazonaws.com/FFC/DOD/UFGS/UFGS%2009%2051%2000.pdf",
+      "downloaded": "2026-10-30",
+      "local_path": "data/specs/UFGS_09_51_00.pdf",
+      "sha256": "734061a8551e2c46dca7c23cb181dba25ddcdc225c546458edf5fb056a76ff51"
+    },
+    {
+      "id": "UFGS-09-65-00",
+      "doc_type": "spec",
+      "section_code": "09 65 00",
+      "title": "UFGS 09 65 00 Resilient Flooring",
+      "release": "UFGS-2026-08",
+      "url": "https://nibs-s3-wbdg3-production.s3.us-east-1.amazonaws.com/FFC/DOD/UFGS/UFGS%2009%2065%2000.pdf",
+      "downloaded": "2026-10-30",
+      "local_path": "data/specs/UFGS_09_65_00.pdf",
+      "sha256": "5be33ec09f93ce2393c21a84ee3bbf5f6842744e0dc66b0c8c106978641c6b5f"
+    },
+    {
+      "id": "UFGS-09-90-00",
+      "doc_type": "spec",
+      "section_code": "09 90 00",
+      "title": "UFGS 09 90 00 Architectural Paints and Coatings",
+      "release": "UFGS-2026-08",
+      "url": "https://nibs-s3-wbdg3-production.s3.us-east-1.amazonaws.com/FFC/DOD/UFGS/UFGS%2009%2090%2000.pdf",
+      "downloaded": "2026-10-30",
+      "local_path": "data/specs/UFGS_09_90_00.pdf",
+      "sha256": "35a9f2f6165959e9ff4994303e076ea7ed9b3f2553f45a730fea2037414bcedb"
+    },
+    {
+      "id": "UFGS-22-00-00",
+      "doc_type": "spec",
+      "section_code": "22 00 00",
+      "title": "UFGS 22 00 00 Plumbing, General Purpose",
+      "release": "UFGS-2026-08",
+      "url": "https://nibs-s3-wbdg3-production.s3.us-east-1.amazonaws.com/FFC/DOD/UFGS/UFGS%2022%2000%2000.pdf",
+      "downloaded": "2026-10-30",
+      "local_path": "data/specs/UFGS_22_00_00.pdf",
+      "sha256": "cd699c37b2bfef9d186f4d7e85513542b40d6dabd2efda3bb5a23a447d1f1f17"
+    },
+    {
+      "id": "UFGS-26-20-00",
+      "doc_type": "spec",
+      "section_code": "26 20 00",
+      "title": "UFGS 26 20 00 Interior Distribution System",
+      "release": "UFGS-2026-08",
+      "url": "https://nibs-s3-wbdg3-production.s3.us-east-1.amazonaws.com/FFC/DOD/UFGS/UFGS%2026%2020%2000.pdf",
+      "downloaded": "2026-10-30",
+      "local_path": "data/specs/UFGS_26_20_00.pdf",
+      "sha256": "cee982b1b88c150e4015c49f4bdf4db212af8a40f2822463211075c58d0bae40"
+    },
+    {
+      "id": "UFGS-26-51-00",
+      "doc_type": "spec",
+      "section_code": "26 51 00",
+      "title": "UFGS 26 51 00 Interior Lighting",
+      "release": "UFGS-2026-08",
+      "url": "https://nibs-s3-wbdg3-production.s3.us-east-1.amazonaws.com/FFC/DOD/UFGS/UFGS%2026%2051%2000.pdf",
+      "downloaded": "2026-10-30",
+      "local_path": "data/specs/UFGS_26_51_00.pdf",
+      "sha256": "da2ea31c7f967d8d9128ba28690c3e6779890fc699d30a39f96078289f67918d"
     }
   ]
 }
