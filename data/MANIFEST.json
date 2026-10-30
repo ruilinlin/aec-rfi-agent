@@ -1,0 +1,17 @@
+{
+  "manifest_version": "0.1.0",
+  "created": "2026-10-30",
+  "documents": [
+    {
+      "id": "EXAMPLE",
+      "doc_type": "spec",
+      "section_code": "XX XX XX",
+      "title": "replace",
+      "release": "UFGS-YYYY-MM",
+      "url": "https://www.wbdg.org/dod/ufgs",
+      "downloaded": "YYYY-MM-DD",
+      "local_path": "data/specs/....pdf",
+      "sha256": "fill-by-script"
+    }
+  ]
+}

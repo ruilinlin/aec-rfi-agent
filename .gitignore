@@ -1,0 +1,13 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+*.egg-info/
+# raw corpus stays local; MANIFEST.json is committed
+data/specs/*
+data/drawings/*
+data/submittals/*
+!data/**/.gitkeep
+eval/results/*.json
+.DS_Store
