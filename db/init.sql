@@ -13,14 +13,14 @@ CREATE TABLE IF NOT EXISTS documents (
   sha256          TEXT NOT NULL
 );
 
--- Embedding dimension must match the embedding model; 1536 is a placeholder.
+-- Embedding dimension must match the embedding model; 1024 = voyage-3.5.
 CREATE TABLE IF NOT EXISTS chunks (
   id            TEXT PRIMARY KEY,
   document_id   TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
   section_path  TEXT,
   page          INT,
   text          TEXT NOT NULL,
-  embedding     vector(1536),
+  embedding     vector(1024),
   tsv           tsvector GENERATED ALWAYS AS (to_tsvector('english', text)) STORED
 );
 
