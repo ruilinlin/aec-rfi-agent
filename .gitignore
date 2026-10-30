@@ -11,3 +11,4 @@ data/submittals/*
 !data/**/.gitkeep
 eval/results/*.json
 .DS_Store
+docker-compose.override.yml
