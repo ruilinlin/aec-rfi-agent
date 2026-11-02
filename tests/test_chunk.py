@@ -65,6 +65,16 @@ def test_parse_heading_recognizes_part_and_dotted_numbers():
     assert parse_heading("1.2.1   Painting Included") == ("1.2.1", "Painting Included")
 
 
+def test_parse_heading_strips_leading_option_brackets():
+    # Bracketed optional clauses: '[3.1.5.2   ...' and ']1.5   ...' are headings.
+    assert parse_heading("[3.1.5.2   Metal-Clad Cable") == ("3.1.5.2", "Metal-Clad Cable")
+    assert parse_heading("]1.5   ENVIRONMENTAL CONDITIONS") == ("1.5", "ENVIRONMENTAL CONDITIONS")
+    assert parse_heading("][2.7.1.1   Equipment Manufacturer Requirements") == (
+        "2.7.1.1",
+        "Equipment Manufacturer Requirements",
+    )
+
+
 def test_parse_heading_rejects_body_text_and_toc_indents():
     assert parse_heading("Paint all exposed exterior surfaces.") is None
     assert parse_heading("  1.1   SUMMARY") is None  # TOC lines are indented

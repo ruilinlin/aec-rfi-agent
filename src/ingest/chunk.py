@@ -53,8 +53,13 @@ def parse_heading(line: str) -> tuple[str, str] | None:
     'PART 2   PRODUCTS'         -> ('PART 2', 'PRODUCTS')
     '1.2.1   Painting Included' -> ('1.2.1', 'Painting Included')
     'some body text'            -> None
+
+    UFGS marks optional clauses with square brackets, and the bracket often
+    lands at the start of a heading line ('[3.1.5.2   ...', ']1.5   ...');
+    leading brackets are stripped so those headings still split into their
+    own chunks. TOC lines stay excluded: they are indented with spaces.
     """
-    m = HEADING_RE.match(line)
+    m = HEADING_RE.match(line.lstrip("[]"))
     if m is None:
         return None
     return m.group(1), m.group(2)
