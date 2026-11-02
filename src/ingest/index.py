@@ -21,7 +21,7 @@ import psycopg
 from dotenv import load_dotenv
 from pgvector.psycopg import register_vector
 
-from src.ingest.chunk import chunk_pages
+from src.ingest.chunk import chunk_pages, fixed_chunks
 from src.ingest.loaders import load_pdf
 from src.ingest.metadata import parse_banner
 from src.util import ssl_context
@@ -104,21 +104,30 @@ def _post_with_retry(req: urllib.request.Request) -> dict:
     raise RuntimeError("unreachable")
 
 
-def ingest_document(conn: psycopg.Connection, entry: dict) -> tuple[int, dict]:
+CHUNKERS = {"section": (chunk_pages, "chunks"), "fixed": (fixed_chunks, "chunks_fixed")}
+
+
+def ingest_document(
+    conn: psycopg.Connection, entry: dict, chunker: str = "section"
+) -> tuple[int, dict]:
     """Ingest one manifest entry; return (chunks written, parsed banner).
 
     A document whose stored sha256 already matches the manifest entry is not
     re-embedded (-1 is returned); its banner is still parsed so the
     supersedes pass can run over every document on every run.
     """
+    chunk_fn, table = CHUNKERS[chunker]
     pages = load_pdf(ROOT / entry["local_path"])
     banner = parse_banner(pages[0])
     existing = conn.execute(
         "SELECT sha256 FROM documents WHERE id = %s", (entry["id"],)
     ).fetchone()
-    if existing and existing[0] == entry["sha256"]:
+    has_chunks = conn.execute(
+        f"SELECT 1 FROM {table} WHERE document_id = %s LIMIT 1", (entry["id"],)
+    ).fetchone()
+    if existing and existing[0] == entry["sha256"] and has_chunks:
         return -1, banner
-    chunks = chunk_pages(pages)
+    chunks = chunk_fn(pages)
     vectors = embed_texts([c["text"] for c in chunks])
 
     conn.execute(
@@ -133,15 +142,16 @@ def ingest_document(conn: psycopg.Connection, entry: dict) -> tuple[int, dict]:
         """,
         {**entry, "revision": banner["revision"]},
     )
-    conn.execute("DELETE FROM chunks WHERE document_id = %s", (entry["id"],))
+    conn.execute(f"DELETE FROM {table} WHERE document_id = %s", (entry["id"],))
+    id_prefix = entry["id"] if table == "chunks" else f"{entry['id']}:F"
     with conn.cursor() as cur:
         cur.executemany(
-            """
-            INSERT INTO chunks (id, document_id, section_path, page, text, embedding)
+            f"""
+            INSERT INTO {table} (id, document_id, section_path, page, text, embedding)
             VALUES (%s, %s, %s, %s, %s, %s)
             """,
             [
-                (f"{entry['id']}:{i:04d}", entry["id"], c["section_path"], c["page"], c["text"], v)
+                (f"{id_prefix}:{i:04d}", entry["id"], c["section_path"], c["page"], c["text"], v)
                 for i, (c, v) in enumerate(zip(chunks, vectors))
             ],
         )
@@ -176,7 +186,13 @@ def link_supersedes(conn: psycopg.Connection, banners: dict[str, tuple[str, dict
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", default="data/specs", help="corpus directory (informational)")
-    parser.parse_args()
+    parser.add_argument(
+        "--chunker",
+        default="section",
+        choices=sorted(CHUNKERS),
+        help="section (default) fills chunks; fixed fills chunks_fixed for baselines",
+    )
+    args = parser.parse_args()
 
     load_dotenv(ROOT / ".env")
     manifest = json.loads(MANIFEST_PATH.read_text())
@@ -189,7 +205,7 @@ def main() -> int:
             if not (ROOT / entry["local_path"]).exists():
                 print(f"skip {entry['id']}: {entry['local_path']} not downloaded")
                 continue
-            n, banner = ingest_document(conn, entry)
+            n, banner = ingest_document(conn, entry, args.chunker)
             banners[entry["id"]] = (entry["section_code"], banner)
             if n < 0:
                 print(f"skip {entry['id']}: unchanged (sha256 match)")

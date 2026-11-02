@@ -12,11 +12,18 @@ import psycopg
 from psycopg.rows import dict_row
 
 ALLOWED_FILTERS = ("doc_type", "section_code", "revision")
+# Two parallel chunkings of the same corpus: section-aware (default) and the
+# fixed-size baseline. Table names are whitelisted, never interpolated raw.
+ALLOWED_TABLES = ("chunks", "chunks_fixed")
 
-_SELECT = """
+
+def _select(table: str) -> str:
+    if table not in ALLOWED_TABLES:
+        raise ValueError(f"unsupported table: {table}")
+    return f"""
     SELECT c.id, c.document_id, c.section_path, c.page, c.text,
            d.doc_type, d.section_code, d.revision
-    FROM chunks c
+    FROM {table} c
     JOIN documents d ON d.id = c.document_id
 """
 
@@ -38,12 +45,16 @@ def _filter_sql(filters: dict | None) -> tuple[str, dict]:
 
 
 def dense_search(
-    conn: psycopg.Connection, embedding: list[float], k: int = 50, filters: dict | None = None
+    conn: psycopg.Connection,
+    embedding: list[float],
+    k: int = 50,
+    filters: dict | None = None,
+    table: str = "chunks",
 ) -> list[dict]:
     """Top-k chunks by cosine distance to the query embedding."""
     where, params = _filter_sql(filters)
     sql = f"""
-        {_SELECT}
+        {_select(table)}
         WHERE TRUE {where}
         ORDER BY c.embedding <=> %(vec)s::vector
         LIMIT %(k)s
@@ -54,12 +65,16 @@ def dense_search(
 
 
 def keyword_search(
-    conn: psycopg.Connection, query: str, k: int = 50, filters: dict | None = None
+    conn: psycopg.Connection,
+    query: str,
+    k: int = 50,
+    filters: dict | None = None,
+    table: str = "chunks",
 ) -> list[dict]:
     """Top-k chunks by full-text rank against the query words."""
     where, params = _filter_sql(filters)
     sql = f"""
-        {_SELECT},
+        {_select(table)},
              plainto_tsquery('english', %(q)s) AS tsq
         WHERE c.tsv @@ tsq {where}
         ORDER BY ts_rank(c.tsv, tsq) DESC

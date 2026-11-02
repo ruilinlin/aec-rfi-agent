@@ -113,3 +113,48 @@ def chunk_pages(pages: list[str]) -> list[dict]:
         current["text"] = current["text"].strip()
         chunks.append(current)
     return chunks
+
+
+FIXED_CHUNK_SIZE = 1500
+FIXED_CHUNK_OVERLAP = 200
+
+
+def fixed_chunks(
+    pages: list[str], size: int = FIXED_CHUNK_SIZE, overlap: int = FIXED_CHUNK_OVERLAP
+) -> list[dict]:
+    """Fixed-size chunking baseline (B1 and the -section-chunking ablation).
+
+    Same noise stripping and TOC skipping as chunk_pages, but text is cut
+    every `size` characters with `overlap` carried over, regardless of
+    section boundaries. Each chunk is tagged with the section_path and page
+    active at its start, so citation metrics stay comparable.
+    """
+    start = find_body_start(pages)
+    lines: list[tuple[str, str, int]] = []  # (line, active path, page number)
+    path = ""
+    for page_index in range(start, len(pages)):
+        for line in strip_noise(pages[page_index]).splitlines():
+            heading = parse_heading(line)
+            if heading is not None:
+                path = section_path(heading[0])
+            lines.append((line, path, page_index + 1))
+
+    chunks: list[dict] = []
+    buffer: list[str] = []
+    buffer_len = 0
+    chunk_path, chunk_page = "", start + 1
+    for line, path, page in lines:
+        if not buffer:
+            chunk_path, chunk_page = path, page
+        buffer.append(line)
+        buffer_len += len(line) + 1
+        if buffer_len >= size:
+            text = "\n".join(buffer).strip()
+            chunks.append({"section_path": chunk_path, "page": chunk_page, "text": text})
+            tail = text[-overlap:]
+            buffer, buffer_len = [tail], len(tail)
+            chunk_path, chunk_page = path, page
+    remainder = "\n".join(buffer).strip()
+    if remainder and len(remainder) > overlap:
+        chunks.append({"section_path": chunk_path, "page": chunk_page, "text": remainder})
+    return chunks

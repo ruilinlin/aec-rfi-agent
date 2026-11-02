@@ -38,9 +38,10 @@ def retrieve(state: dict) -> dict:
     its own section number, so keyword search cannot find codes).
     """
     question = state["rfi"].question
+    table = state.get("retrieval_table", "chunks")
     embedding = embed_texts([question], input_type="query")[0]
     with psycopg.connect(os.environ["DATABASE_URL"]) as conn:
-        rows = hybrid_search(conn, question, k=RETRIEVE_K, embedding=embedding)
+        rows = hybrid_search(conn, question, k=RETRIEVE_K, embedding=embedding, table=table)
         seen = {row["id"] for row in rows}
         for code in state["references"]:
             filtered = hybrid_search(
@@ -49,6 +50,7 @@ def retrieve(state: dict) -> dict:
                 k=RETRIEVE_K_PER_REFERENCE,
                 filters={"section_code": code},
                 embedding=embedding,
+                table=table,
             )
             for row in filtered:
                 if row["id"] not in seen:
@@ -193,4 +195,27 @@ def verify(state: dict) -> dict:
     ]
     searched = sorted({c["section_code"] for c in state["chunks"]} | set(state["references"]))
     report = GapReport(rfi_id=rfi.id, reason=reason, searched=searched, closest_matches=closest)
+    return {"response": report}
+
+
+def finalize_unverified(state: dict) -> dict:
+    """Terminal node for the -verify ablation: accept the draft as-is.
+
+    No quote checking, no claim review; only the zero-citation case still
+    becomes a GapReport so the output type stays CitedResponse | GapReport.
+    """
+    rfi = state["rfi"]
+    if state["draft_citations"]:
+        response = CitedResponse(
+            rfi_id=rfi.id,
+            rfi_type=state["rfi_type"],
+            answer=state["draft_answer"],
+            citations=state["draft_citations"],
+            superseded_notes=state.get("superseded_notes", []),
+        )
+        return {"response": response}
+    searched = sorted({c["section_code"] for c in state["chunks"]} | set(state["references"]))
+    report = GapReport(
+        rfi_id=rfi.id, reason="draft produced no valid citations", searched=searched
+    )
     return {"response": report}
