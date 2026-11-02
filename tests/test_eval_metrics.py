@@ -56,3 +56,27 @@ def test_citation_precision_recall_with_no_predictions():
 def test_mean_of_empty_list_is_none_not_zero():
     assert ev.mean([]) is None
     assert ev.mean([0.5, 1.0]) == 0.75
+
+
+SUPERSEDED = [
+    {"section_code": "09 90 00", "section_path": "PART 1 > 1.9 > 1.9.1", "revision": "UFGS-2021-02"}
+]
+
+
+def test_cited_stale_revision_true_on_old_revision_citation():
+    predicted = [
+        {"section_code": "09 90 00", "section_path": "PART 1 > 1.9 > 1.9.1", "revision": "UFGS-2021-02"}
+    ]
+    assert ev.cited_stale_revision(SUPERSEDED, predicted)
+
+
+def test_cited_stale_revision_false_when_same_path_but_current_revision():
+    # Citing the clause at its governing revision is correct, not stale.
+    predicted = [
+        {"section_code": "09 90 00", "section_path": "PART 1 > 1.9 > 1.9.1", "revision": "UFGS-2026-08"}
+    ]
+    assert not ev.cited_stale_revision(SUPERSEDED, predicted)
+
+
+def test_cited_stale_revision_false_with_no_predictions():
+    assert not ev.cited_stale_revision(SUPERSEDED, [])
