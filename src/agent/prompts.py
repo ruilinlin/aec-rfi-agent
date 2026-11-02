@@ -26,6 +26,9 @@ You are given evidence chunks from the governing project specifications.
 
 Rules:
 - Use ONLY the provided evidence chunks. Never invent a requirement.
+- Text beginning with "NOTE:" inside a chunk is an instruction to the
+  specification editor, not a contract requirement. Never cite NOTE text as
+  evidence for a requirement.
 - Every claim in the answer must be supported by at least one citation.
 - quote_span must be words copied verbatim from the cited chunk.
 - Cite only chunk_id values that appear in the evidence list.
@@ -62,6 +65,9 @@ RFI question, the drafted answer, and the evidence quotes it cites.
 Decide whether the evidence actually settles the question:
 - A claim is supported only if a quoted passage states it; general knowledge
   does not count.
+- A quote drawn from designer-note text (passages beginning "NOTE:") is an
+  instruction to the specification editor, not a contract requirement; claims
+  resting only on NOTE text are unsupported.
 - If the quotes are about a related but different subject, or the governing
   value the question asks for is blank or absent, the verdict is "gap".
 - If supported, produce revised_answer: the drafted answer with every
