@@ -11,7 +11,6 @@ are replaced wholesale (delete + insert) on every run.
 import argparse
 import json
 import os
-import ssl
 import sys
 import time
 import urllib.error
@@ -25,6 +24,7 @@ from pgvector.psycopg import register_vector
 from src.ingest.chunk import chunk_pages
 from src.ingest.loaders import load_pdf
 from src.ingest.metadata import parse_banner
+from src.util import ssl_context
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 MANIFEST_PATH = ROOT / "data" / "MANIFEST.json"
@@ -38,15 +38,6 @@ EMBED_REQUEST_DELAY_SECONDS = 40
 EMBED_MAX_RETRIES = 8
 
 _last_request_at = 0.0
-
-
-def _ssl_context() -> ssl.SSLContext:
-    try:
-        import certifi
-
-        return ssl.create_default_context(cafile=certifi.where())
-    except ImportError:
-        return ssl.create_default_context()
 
 
 def _token_batches(texts: list[str]) -> list[list[str]]:
@@ -101,7 +92,7 @@ def _post_with_retry(req: urllib.request.Request) -> dict:
     """POST with exponential backoff on 429, honoring the Retry-After header."""
     for attempt in range(EMBED_MAX_RETRIES):
         try:
-            with urllib.request.urlopen(req, context=_ssl_context(), timeout=120) as resp:
+            with urllib.request.urlopen(req, context=ssl_context(), timeout=120) as resp:
                 return json.loads(resp.read())
         except urllib.error.HTTPError as exc:
             if exc.code != 429 or attempt == EMBED_MAX_RETRIES - 1:

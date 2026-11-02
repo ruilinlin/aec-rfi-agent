@@ -35,13 +35,16 @@ def hybrid_search(
     k: int = 10,
     filters: dict | None = None,
     fetch_k: int = 50,
+    embedding: list[float] | None = None,
 ) -> list[dict]:
     """Embed the question, run both searches, fuse with RRF, return top-k rows.
 
     fetch_k controls how deep each signal's candidate list goes before fusion;
     deeper lists give RRF more overlap evidence at the cost of two bigger reads.
+    Pass a precomputed query embedding to reuse it across several calls.
     """
-    embedding = embed_texts([question], input_type="query")[0]
+    if embedding is None:
+        embedding = embed_texts([question], input_type="query")[0]
     dense = dense_search(conn, embedding, fetch_k, filters)
     keyword = keyword_search(conn, question, fetch_k, filters)
 
