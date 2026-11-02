@@ -72,6 +72,15 @@ def citation_precision_recall(
     return precision, recall
 
 
+def cited_stale_revision(superseded_citations: list[dict], predicted: list[dict]) -> bool:
+    """True when any predicted citation cites a superseded clause at its old revision."""
+    return any(
+        citation_matches(sup, p) and p.get("revision") == sup.get("revision")
+        for sup in superseded_citations
+        for p in predicted
+    )
+
+
 def mean(values: list[float]) -> float | None:
     return sum(values) / len(values) if values else None
 
@@ -159,12 +168,19 @@ def evaluate(config_name: str, split: str) -> dict:
                 {
                     "section_code": c["section_code"],
                     "section_path": path_by_chunk.get(c["chunk_id"], ""),
+                    "revision": c["revision"],
                 }
                 for c in output["citations"]
             ]
             precision, recall = citation_precision_recall(gold, predicted)
             record["citation_precision"] = precision
             record["citation_recall"] = recall
+            if item.get("superseded_citations"):
+                record["cited_stale_revision"] = cited_stale_revision(
+                    item["superseded_citations"], predicted
+                )
+        elif item.get("superseded_citations"):
+            record["cited_stale_revision"] = False  # abstaining never cites stale text
         per_item.append(record)
 
     answered = [r for r in per_item if r["answerable"] and not r["abstained"]]
@@ -180,6 +196,13 @@ def evaluate(config_name: str, split: str) -> dict:
         ),
         "abstain_rate_on_unanswerable": mean(
             [1.0 if r["abstained"] else 0.0 for r in unanswerable]
+        ),
+        "stale_revision_rate": mean(
+            [
+                1.0 if r["cited_stale_revision"] else 0.0
+                for r in per_item
+                if "cited_stale_revision" in r
+            ]
         ),
     }
     return {"aggregate": aggregate, "items": per_item}
