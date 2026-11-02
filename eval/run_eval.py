@@ -148,7 +148,17 @@ def evaluate(config_name: str, split: str) -> dict:
             ]
             record["recall_at_5"] = retrieval_recall_at_k(gold, chunk_keys, 5)
             record["recall_at_10"] = retrieval_recall_at_k(gold, chunk_keys, 10)
-            precision, recall = citation_precision_recall(gold, output["citations"])
+            # Predicted Citations carry no section_path (DESIGN §5); resolve it
+            # from the retrieved chunks via chunk_id before matching.
+            path_by_chunk = {c["id"]: c["section_path"] for c in output["chunks"]}
+            predicted = [
+                {
+                    "section_code": c["section_code"],
+                    "section_path": path_by_chunk.get(c["chunk_id"], ""),
+                }
+                for c in output["citations"]
+            ]
+            precision, recall = citation_precision_recall(gold, predicted)
             record["citation_precision"] = precision
             record["citation_recall"] = recall
         per_item.append(record)
