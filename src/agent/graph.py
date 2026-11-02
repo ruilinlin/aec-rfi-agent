@@ -1,4 +1,4 @@
-"""Happy-path agent graph: classify -> retrieve -> draft (DESIGN.md §3).
+"""Agent graph: classify -> retrieve -> cross_check -> draft -> verify (DESIGN.md §3).
 
 Usage (ad-hoc, from the repo root):
     .venv/bin/python -m src.agent.graph "Which paint system applies to interior steel?"
@@ -10,9 +10,9 @@ from pathlib import Path
 
 from langgraph.graph import END, START, StateGraph
 
-from src.agent.nodes import classify, draft, retrieve
+from src.agent.nodes import classify, cross_check, draft, retrieve, verify
 from src.agent.state import AgentState
-from src.schemas import CitedResponse, RFIRequest
+from src.schemas import CitedResponse, GapReport, RFIRequest
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -21,15 +21,19 @@ def build_graph():
     graph = StateGraph(AgentState)
     graph.add_node("classify", classify)
     graph.add_node("retrieve", retrieve)
+    graph.add_node("cross_check", cross_check)
     graph.add_node("draft", draft)
+    graph.add_node("verify", verify)
     graph.add_edge(START, "classify")
     graph.add_edge("classify", "retrieve")
-    graph.add_edge("retrieve", "draft")
-    graph.add_edge("draft", END)
+    graph.add_edge("retrieve", "cross_check")
+    graph.add_edge("cross_check", "draft")
+    graph.add_edge("draft", "verify")
+    graph.add_edge("verify", END)
     return graph.compile()
 
 
-def run_rfi(question: str, rfi_id: str | None = None) -> CitedResponse:
+def run_rfi(question: str, rfi_id: str | None = None) -> CitedResponse | GapReport:
     rfi = RFIRequest(id=rfi_id or f"rfi-{uuid.uuid4().hex[:8]}", question=question)
     final_state = build_graph().invoke({"rfi": rfi})
     return final_state["response"]

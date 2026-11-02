@@ -82,18 +82,22 @@ def mean(values: list[float]) -> float | None:
 def run_ours(item: dict) -> dict:
     """Full agent. Returns retrieved chunks, predicted citations, abstained flag."""
     from src.agent.graph import build_graph
-    from src.schemas import RFIRequest
+    from src.schemas import GapReport, RFIRequest
 
     rfi = RFIRequest(
         id=item["id"], question=item["question"], references=item.get("references_in_question", [])
     )
     graph = run_ours.graph or build_graph()
     run_ours.graph = graph
-    try:
-        state = graph.invoke({"rfi": rfi})
-    except ValueError as exc:  # zero valid citations -> the agent abstained
-        return {"chunks": [], "citations": [], "abstained": True, "abstain_reason": str(exc)}
+    state = graph.invoke({"rfi": rfi})
     response = state["response"]
+    if isinstance(response, GapReport):
+        return {
+            "chunks": state["chunks"],
+            "citations": [],
+            "abstained": True,
+            "abstain_reason": response.reason,
+        }
     return {
         "chunks": state["chunks"],
         "citations": [c.model_dump() for c in response.citations],

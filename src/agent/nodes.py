@@ -1,22 +1,24 @@
-"""Agent graph nodes. Each takes the state and returns a partial update.
+"""Agent graph nodes: classify -> retrieve -> cross_check -> draft -> verify.
 
-classify and draft call the LLM; retrieve is deterministic code. Citation
-validity is enforced here in code, not requested in the prompt: a chunk_id
-the model was never given is dropped, and a draft with zero valid citations
-is rejected outright.
+classify, draft and verify call the LLM; retrieve and cross_check are
+deterministic. What counts as evidence is decided in code: revision
+governance (cross_check), citation id validity (draft), and verbatim-quote
+checking (verify) are never delegated to the model.
 """
 
 import os
+import re
 
 import psycopg
 
 from src.agent import llm, prompts
 from src.ingest.index import embed_texts
 from src.retrieval.hybrid import hybrid_search
-from src.schemas import Citation, CitedResponse
+from src.schemas import Citation, CitedResponse, GapReport
 
 RETRIEVE_K = 10
 RETRIEVE_K_PER_REFERENCE = 5
+CLOSEST_MATCHES = 3
 
 
 def classify(state: dict) -> dict:
@@ -55,9 +57,63 @@ def retrieve(state: dict) -> dict:
     return {"chunks": rows}
 
 
+def _superseded_doc_ids(conn: psycopg.Connection, doc_ids: set[str]) -> dict[str, str]:
+    """Map each superseded document id to the revision that replaces it."""
+    rows = conn.execute(
+        """
+        SELECT old.id, newer.revision
+        FROM documents newer
+        JOIN documents old ON newer.supersedes_id = old.id
+        WHERE old.id = ANY(%s)
+        """,
+        (list(doc_ids),),
+    ).fetchall()
+    return {row[0]: row[1] for row in rows}
+
+
+def partition_superseded(
+    chunks: list[dict], superseded: dict[str, str]
+) -> tuple[list[dict], list[str]]:
+    """Split chunks into governing evidence and superseded notes.
+
+    Superseded chunks never remain as evidence; each (section, path) yields
+    one human-readable note so the draft can flag the stale reference.
+    """
+    governing: list[dict] = []
+    notes: list[str] = []
+    noted: set[tuple[str, str]] = set()
+    for chunk in chunks:
+        newer_revision = superseded.get(chunk["document_id"])
+        if newer_revision is None:
+            governing.append(chunk)
+            continue
+        key = (chunk["section_code"], chunk["section_path"])
+        if key not in noted:
+            noted.add(key)
+            notes.append(
+                f"{chunk['section_code']} {chunk['section_path']} rev {chunk['revision']} "
+                f"is superseded by rev {newer_revision}"
+            )
+    return governing, notes
+
+
+def cross_check(state: dict) -> dict:
+    """Deterministic revision governance: keep only governing-revision chunks."""
+    chunks = state["chunks"]
+    if not chunks:
+        return {"superseded_notes": []}
+    with psycopg.connect(os.environ["DATABASE_URL"]) as conn:
+        superseded = _superseded_doc_ids(conn, {c["document_id"] for c in chunks})
+    governing, notes = partition_superseded(chunks, superseded)
+    return {"chunks": governing, "superseded_notes": notes}
+
+
 def draft(state: dict) -> dict:
-    """LLM drafts the response; code validates every citation against the
-    chunks actually provided and rejects uncited output."""
+    """LLM drafts the response; code keeps only citations of provided chunks.
+
+    A draft with zero valid citations is not an error here: verify turns it
+    into a GapReport.
+    """
     data = llm.complete_json(prompts.DRAFT_SYSTEM, prompts.draft_user(state), max_tokens=4096)
 
     rows_by_id = {chunk["id"]: chunk for chunk in state["chunks"]}
@@ -74,13 +130,67 @@ def draft(state: dict) -> dict:
                 quote_span=raw.get("quote_span", ""),
             )
         )
-    if not citations:
-        raise ValueError("draft produced zero valid citations; refusing uncited output")
+    return {"draft_answer": data.get("answer", ""), "draft_citations": citations}
 
-    response = CitedResponse(
-        rfi_id=state["rfi"].id,
-        rfi_type=state["rfi_type"],
-        answer=data["answer"],
-        citations=citations,
-    )
-    return {"response": response}
+
+def _normalize_ws(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def quote_verbatim(quote: str, chunk_text: str) -> bool:
+    """True when the quote appears in the chunk, ignoring line-wrap whitespace.
+
+    PDF extraction wraps lines mid-sentence, so raw substring checks fail on
+    genuinely verbatim quotes; both sides are whitespace-normalized first.
+    """
+    return bool(quote.strip()) and _normalize_ws(quote) in _normalize_ws(chunk_text)
+
+
+def verify(state: dict) -> dict:
+    """Validate the draft; emit CitedResponse or a GapReport.
+
+    Two gates, strictest first:
+    1. deterministic: every citation's quote_span must appear verbatim
+       (whitespace-normalized) in its cited chunk;
+    2. LLM review: does the surviving evidence actually settle the question?
+       Unsupported claims are removed from the answer in the same pass.
+    """
+    rfi = state["rfi"]
+    chunks_by_id = {chunk["id"]: chunk for chunk in state["chunks"]}
+    quote_valid = [
+        c
+        for c in state["draft_citations"]
+        if c.chunk_id in chunks_by_id and quote_verbatim(c.quote_span, chunks_by_id[c.chunk_id]["text"])
+    ]
+
+    if quote_valid:
+        data = llm.complete_json(
+            prompts.VERIFY_SYSTEM, prompts.verify_user(state, quote_valid), max_tokens=4096
+        )
+        supported_ids = set(data.get("supported_chunk_ids", []))
+        final = [c for c in quote_valid if c.chunk_id in supported_ids]
+        if data.get("verdict") == "supported" and final and data.get("revised_answer"):
+            response = CitedResponse(
+                rfi_id=rfi.id,
+                rfi_type=state["rfi_type"],
+                answer=data["revised_answer"],
+                citations=final,
+                superseded_notes=state.get("superseded_notes", []),
+            )
+            return {"response": response}
+        reason = data.get("reason", "the cited evidence does not settle the question")
+    else:
+        reason = "no citation survived verbatim quote verification"
+
+    closest = [
+        Citation(
+            chunk_id=chunk["id"],
+            section_code=chunk["section_code"],
+            revision=chunk["revision"],
+            quote_span="",
+        )
+        for chunk in state["chunks"][:CLOSEST_MATCHES]
+    ]
+    searched = sorted({c["section_code"] for c in state["chunks"]} | set(state["references"]))
+    report = GapReport(rfi_id=rfi.id, reason=reason, searched=searched, closest_matches=closest)
+    return {"response": report}
