@@ -77,8 +77,12 @@ Return ONLY a JSON object, no other text:
 
 def verify_user(state: dict, citations: list) -> str:
     rfi = state["rfi"]
+    paths = {chunk["id"]: chunk["section_path"] for chunk in state["chunks"]}
     lines = [f"RFI {rfi.id} (type: {state['rfi_type']}):", rfi.question, "", "Drafted answer:", state["draft_answer"], "", "Cited evidence:"]
     for c in citations:
-        lines.append(f"--- chunk_id: {c.chunk_id} | section {c.section_code} | revision {c.revision}")
+        lines.append(
+            f"--- chunk_id: {c.chunk_id} | section {c.section_code} "
+            f"| {paths.get(c.chunk_id, '')} | revision {c.revision}"
+        )
         lines.append(f"quote: {c.quote_span}")
     return "\n".join(lines)
