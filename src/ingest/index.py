@@ -13,6 +13,8 @@ import json
 import os
 import ssl
 import sys
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -28,7 +30,14 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 MANIFEST_PATH = ROOT / "data" / "MANIFEST.json"
 
 VOYAGE_URL = "https://api.voyageai.com/v1/embeddings"
-EMBED_BATCH_SIZE = 64
+# Free-tier Voyage limits (no payment method): 3 requests/min, 10K tokens/min.
+# Batches are sized by estimated tokens (chars/4) and requests are spaced out;
+# the 429 backoff in _post_with_retry remains as a safety net.
+EMBED_BATCH_TOKEN_BUDGET = 6000
+EMBED_REQUEST_DELAY_SECONDS = 40
+EMBED_MAX_RETRIES = 8
+
+_last_request_at = 0.0
 
 
 def _ssl_context() -> ssl.SSLContext:
@@ -40,12 +49,38 @@ def _ssl_context() -> ssl.SSLContext:
         return ssl.create_default_context()
 
 
+def _token_batches(texts: list[str]) -> list[list[str]]:
+    """Group texts into batches of at most EMBED_BATCH_TOKEN_BUDGET estimated
+    tokens (chars/4). A single oversized text still forms its own batch."""
+    batches: list[list[str]] = []
+    batch: list[str] = []
+    budget = 0
+    for text in texts:
+        estimate = max(1, len(text) // 4)
+        if batch and budget + estimate > EMBED_BATCH_TOKEN_BUDGET:
+            batches.append(batch)
+            batch, budget = [], 0
+        batch.append(text)
+        budget += estimate
+    if batch:
+        batches.append(batch)
+    return batches
+
+
+def _throttle() -> None:
+    """Space requests EMBED_REQUEST_DELAY_SECONDS apart across all callers."""
+    global _last_request_at
+    wait = _last_request_at + EMBED_REQUEST_DELAY_SECONDS - time.monotonic()
+    if wait > 0:
+        time.sleep(wait)
+    _last_request_at = time.monotonic()
+
+
 def embed_texts(texts: list[str], input_type: str = "document") -> list[list[float]]:
     """Embed texts with Voyage, batched. input_type 'document' at ingest time
     and 'query' at search time lets the model optimize each side."""
     vectors: list[list[float]] = []
-    for i in range(0, len(texts), EMBED_BATCH_SIZE):
-        batch = texts[i : i + EMBED_BATCH_SIZE]
+    for batch in _token_batches(texts):
         req = urllib.request.Request(
             VOYAGE_URL,
             data=json.dumps(
@@ -56,10 +91,26 @@ def embed_texts(texts: list[str], input_type: str = "document") -> list[list[flo
                 "Authorization": f"Bearer {os.environ['VOYAGE_API_KEY']}",
             },
         )
-        with urllib.request.urlopen(req, context=_ssl_context(), timeout=120) as resp:
-            data = json.loads(resp.read())
+        _throttle()
+        data = _post_with_retry(req)
         vectors.extend(item["embedding"] for item in data["data"])
     return vectors
+
+
+def _post_with_retry(req: urllib.request.Request) -> dict:
+    """POST with exponential backoff on 429, honoring the Retry-After header."""
+    for attempt in range(EMBED_MAX_RETRIES):
+        try:
+            with urllib.request.urlopen(req, context=_ssl_context(), timeout=120) as resp:
+                return json.loads(resp.read())
+        except urllib.error.HTTPError as exc:
+            if exc.code != 429 or attempt == EMBED_MAX_RETRIES - 1:
+                raise
+            retry_after = exc.headers.get("Retry-After")
+            delay = float(retry_after) if retry_after else min(2.0**attempt, 60.0)
+            print(f"      rate limited (429); retrying in {delay:.0f}s")
+            time.sleep(delay)
+    raise RuntimeError("unreachable")
 
 
 def ingest_document(conn: psycopg.Connection, entry: dict) -> int:

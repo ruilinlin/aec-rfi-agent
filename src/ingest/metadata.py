@@ -37,7 +37,7 @@ BANNER_RE = re.compile(r"UFGS-([\d .]+?)\s*\((\w+)\s+(\d{4})\)")
 
 def normalize_revision(month_name: str, year: str) -> str:
     """('August', '2026') -> 'UFGS-2026-08'. Raise KeyError on unknown month."""
-    raise NotImplementedError  # your code here
+    return f"UFGS-{year}-{MONTHS[month_name]}"
 
 
 def parse_banner(first_page_text: str) -> dict:
@@ -46,12 +46,19 @@ def parse_banner(first_page_text: str) -> dict:
     Returns {'section_code': '09 90 00',
              'revision': 'UFGS-2026-08',
              'supersedes': 'UFGS-2021-02' or None}
-
-    Hints:
-      - BANNER_RE.findall(...) returns [(code, month, year), ...] in document
-        order: the first match is this document, the second (when the word
-        'Superseding' appears before it) is the superseded revision.
-      - strip() the captured section code; the regex can catch a trailing space.
-      - Raise ValueError if no banner match at all (not a UFGS PDF).
     """
-    raise NotImplementedError  # your code here
+    matches = BANNER_RE.findall(first_page_text)
+    if not matches:
+        raise ValueError("no UFGS banner found; not a UFGS PDF?")
+
+    code, month, year = matches[0]
+    supersedes = None
+    if "Superseding" in first_page_text and len(matches) > 1:
+        _, old_month, old_year = matches[1]
+        supersedes = normalize_revision(old_month, old_year)
+
+    return {
+        "section_code": code.strip(),
+        "revision": normalize_revision(month, year),
+        "supersedes": supersedes,
+    }
