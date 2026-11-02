@@ -19,6 +19,7 @@ import ssl
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import date
 from pathlib import Path
@@ -30,6 +31,16 @@ MANIFEST_PATH = ROOT / "data" / "MANIFEST.json"
 API_BASE = "https://www.wbdg.org/api/documents/"
 RELEASE = "UFGS-2026-08"  # current quarterly master; update when re-pinning
 REQUEST_DELAY_SECONDS = 1  # be polite to a public server
+
+# The UFGS_ARCHIVES bucket holds one PDF per section: the most recently
+# superseded revision. Its content rotates when a new quarterly revision
+# lands, so the sha256 recorded in the manifest pins what was actually used.
+ARCHIVE_URL_BASE = "https://nibs-s3-wbdg3-production.s3.us-east-1.amazonaws.com/FFC/DOD/UFGS_ARCHIVES/"
+# Sections ingested in BOTH the current and the previous revision, forming
+# the revision pairs that cross_check governs over.
+ARCHIVE_SECTIONS = [
+    "09 90 00",
+]
 
 # Starting corpus: building-relevant mix across divisions (see docs/DATA_SOURCES.md).
 SECTIONS = [
@@ -139,6 +150,35 @@ def write_manifest(entries: list[dict]) -> None:
     MANIFEST_PATH.write_text(json.dumps(manifest, indent=2) + "\n")
 
 
+def archive_entries() -> list[dict]:
+    """Download the superseded revision of each ARCHIVE_SECTIONS section."""
+    entries = []
+    for section_code in ARCHIVE_SECTIONS:
+        url = ARCHIVE_URL_BASE + urllib.parse.quote(f"UFGS {section_code}.pdf")
+        stem = section_code.replace(" ", "_").replace(".", "_")
+        local_path = SPECS_DIR / f"UFGS_{stem}_prev.pdf"
+        if local_path.exists():
+            print(f"skip {section_code} (prev): already downloaded ({local_path.name})")
+        else:
+            download(url, local_path)
+            print(f"ok   {section_code} (prev): downloaded {local_path.stat().st_size} bytes")
+            time.sleep(REQUEST_DELAY_SECONDS)
+        entries.append(
+            {
+                "id": "UFGS-" + section_code.replace(" ", "-").replace(".", "-") + "-PREV",
+                "doc_type": "spec",
+                "section_code": section_code,
+                "title": f"UFGS {section_code} (superseded revision, from UFGS_ARCHIVES)",
+                "release": "UFGS-ARCHIVE",
+                "url": url,
+                "downloaded": date.today().isoformat(),
+                "local_path": str(local_path.relative_to(ROOT)),
+                "sha256": sha256_of(local_path),
+            }
+        )
+    return entries
+
+
 def main() -> int:
     SPECS_DIR.mkdir(parents=True, exist_ok=True)
     entries: list[dict] = []
@@ -165,6 +205,7 @@ def main() -> int:
 
         entries.append(build_entry(section_code, meta, pdf, local_path))
 
+    entries.extend(archive_entries())
     write_manifest(entries)
     print(f"\nmanifest: {len(entries)} entries, {len(failed)} failed {failed or ''}")
     return 1 if failed else 0

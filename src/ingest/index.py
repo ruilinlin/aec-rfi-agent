@@ -104,10 +104,20 @@ def _post_with_retry(req: urllib.request.Request) -> dict:
     raise RuntimeError("unreachable")
 
 
-def ingest_document(conn: psycopg.Connection, entry: dict) -> int:
-    """Ingest one manifest entry; return the number of chunks written."""
+def ingest_document(conn: psycopg.Connection, entry: dict) -> tuple[int, dict]:
+    """Ingest one manifest entry; return (chunks written, parsed banner).
+
+    A document whose stored sha256 already matches the manifest entry is not
+    re-embedded (-1 is returned); its banner is still parsed so the
+    supersedes pass can run over every document on every run.
+    """
     pages = load_pdf(ROOT / entry["local_path"])
     banner = parse_banner(pages[0])
+    existing = conn.execute(
+        "SELECT sha256 FROM documents WHERE id = %s", (entry["id"],)
+    ).fetchone()
+    if existing and existing[0] == entry["sha256"]:
+        return -1, banner
     chunks = chunk_pages(pages)
     vectors = embed_texts([c["text"] for c in chunks])
 
@@ -135,7 +145,32 @@ def ingest_document(conn: psycopg.Connection, entry: dict) -> int:
                 for i, (c, v) in enumerate(zip(chunks, vectors))
             ],
         )
-    return len(chunks)
+    return len(chunks), banner
+
+
+def link_supersedes(conn: psycopg.Connection, banners: dict[str, tuple[str, dict]]) -> int:
+    """Point each document at the revision it replaces (DESIGN.md §4).
+
+    The banner states 'Superseding UFGS-<code> (<month> <year>)'; when a
+    document with that section_code and revision exists in the corpus, set
+    supersedes_id on the newer document. Returns the number of links set.
+    """
+    linked = 0
+    for doc_id, (section_code, banner) in banners.items():
+        if not banner.get("supersedes"):
+            continue
+        result = conn.execute(
+            """
+            UPDATE documents SET supersedes_id = old.id
+            FROM documents old
+            WHERE documents.id = %s
+              AND old.section_code = %s AND old.revision = %s
+              AND old.id <> documents.id
+            """,
+            (doc_id, section_code, banner["supersedes"]),
+        )
+        linked += result.rowcount
+    return linked
 
 
 def main() -> int:
@@ -149,14 +184,20 @@ def main() -> int:
     with psycopg.connect(os.environ["DATABASE_URL"]) as conn:
         register_vector(conn)
         total = 0
+        banners: dict[str, tuple[str, dict]] = {}
         for entry in manifest["documents"]:
             if not (ROOT / entry["local_path"]).exists():
                 print(f"skip {entry['id']}: {entry['local_path']} not downloaded")
                 continue
-            n = ingest_document(conn, entry)
-            total += n
-            print(f"ok   {entry['id']}: {n} chunks")
-        print(f"\ningested {total} chunks")
+            n, banner = ingest_document(conn, entry)
+            banners[entry["id"]] = (entry["section_code"], banner)
+            if n < 0:
+                print(f"skip {entry['id']}: unchanged (sha256 match)")
+            else:
+                total += n
+                print(f"ok   {entry['id']}: {n} chunks")
+        linked = link_supersedes(conn, banners)
+        print(f"\ningested {total} chunks; {linked} supersedes link(s) set")
     return 0
 
 
