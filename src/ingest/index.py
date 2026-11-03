@@ -89,7 +89,12 @@ def embed_texts(texts: list[str], input_type: str = "document") -> list[list[flo
 
 
 def _post_with_retry(req: urllib.request.Request) -> dict:
-    """POST with exponential backoff on 429, honoring the Retry-After header."""
+    """POST with exponential backoff on 429 and on transient network errors.
+
+    429 honors the Retry-After header. URLError (DNS blips, dropped
+    connections, timeouts) gets the same backoff: a multi-hour ingest must
+    survive a momentary network wobble. Other HTTP errors raise immediately.
+    """
     for attempt in range(EMBED_MAX_RETRIES):
         try:
             with urllib.request.urlopen(req, context=ssl_context(), timeout=120) as resp:
@@ -100,6 +105,12 @@ def _post_with_retry(req: urllib.request.Request) -> dict:
             retry_after = exc.headers.get("Retry-After")
             delay = float(retry_after) if retry_after else min(2.0**attempt, 60.0)
             print(f"      rate limited (429); retrying in {delay:.0f}s")
+            time.sleep(delay)
+        except (urllib.error.URLError, TimeoutError) as exc:
+            if attempt == EMBED_MAX_RETRIES - 1:
+                raise
+            delay = min(2.0**attempt, 60.0)
+            print(f"      network error ({exc.reason if hasattr(exc, 'reason') else exc}); retrying in {delay:.0f}s")
             time.sleep(delay)
     raise RuntimeError("unreachable")
 
