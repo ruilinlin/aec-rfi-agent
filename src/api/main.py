@@ -9,6 +9,7 @@ fail-closed: no cross-origin access unless CORS_ALLOWED_ORIGINS is set.
 """
 
 import hashlib
+import json
 import logging
 import math
 import os
@@ -108,9 +109,7 @@ def persist_trace(
     must never break the answer path, so every failure is logged and swallowed."""
     try:
         summary = response.usage
-        question_sha256 = hashlib.sha256(
-            re.sub(r"\s+", " ", rfi.question).strip().lower().encode()
-        ).hexdigest()
+        question_sha256 = normalized_question_sha256(rfi.question)
         request_id = f"req-{uuid.uuid4().hex[:12]}"
         with psycopg.connect(os.environ["DATABASE_URL"], connect_timeout=2) as conn:
             conn.execute(
@@ -152,45 +151,53 @@ def persist_trace(
         logger.exception("failed to persist request telemetry")
 
 
-# Mirror of db/init.sql: the Docker entrypoint only runs init.sql on a fresh
-# volume, so deployments initialized before this feature would otherwise never
-# get the telemetry tables (and the best-effort writes would fail silently).
-TELEMETRY_DDL = """
-CREATE TABLE IF NOT EXISTS rfi_requests (
-  id               TEXT PRIMARY KEY,
-  question_sha256  TEXT NOT NULL,
-  rfi_type         TEXT,
-  verdict          TEXT NOT NULL CHECK (verdict IN ('answered','gap')),
-  total_latency_ms INT NOT NULL,
-  total_cost_usd   NUMERIC(10,6) NOT NULL,
-  created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE TABLE IF NOT EXISTS rfi_request_stages (
-  request_id    TEXT NOT NULL REFERENCES rfi_requests(id) ON DELETE CASCADE,
-  stage         TEXT NOT NULL,
-  latency_ms    INT NOT NULL,
-  input_tokens  INT NOT NULL,
-  output_tokens INT NOT NULL,
-  cost_usd      NUMERIC(10,6) NOT NULL,
-  model         TEXT,
-  PRIMARY KEY (request_id, stage)
-);
-"""
-
-
-def ensure_telemetry_tables() -> None:
-    """Best-effort DDL at startup; an unreachable database must not block boot."""
+def ensure_schema() -> None:
+    """Best-effort DDL at startup, sourced from db/init.sql - the single source
+    of truth (everything in it is idempotent IF NOT EXISTS, including the
+    vector extension). An unreachable database must not block boot."""
     try:
+        ddl = (ROOT / "db" / "init.sql").read_text()
         with psycopg.connect(os.environ["DATABASE_URL"], connect_timeout=2) as conn:
-            conn.execute(TELEMETRY_DDL)
+            conn.execute(ddl)
     except Exception:  # logged and swallowed: the API must boot without the DB
-        logger.exception("could not ensure telemetry tables")
+        logger.exception("could not ensure database schema")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    ensure_telemetry_tables()
+    ensure_schema()
     yield
+
+
+def normalized_question_sha256(question: str) -> str:
+    return hashlib.sha256(re.sub(r"\s+", " ", question).strip().lower().encode()).hexdigest()
+
+
+def persist_gap(
+    rfi: RFIRequest, report: GapReport, query_embedding: list[float] | None
+) -> None:
+    """Record an open knowledge gap. Best-effort, like all telemetry; a repeat
+    of the same (normalized) open question is deduplicated, not duplicated."""
+    try:
+        with psycopg.connect(os.environ["DATABASE_URL"], connect_timeout=2) as conn:
+            conn.execute(
+                """
+                INSERT INTO gap_reports
+                  (id, question, question_sha256, reason, searched, embedding)
+                VALUES (%s, %s, %s, %s, %s, %s::vector)
+                ON CONFLICT (question_sha256) WHERE closed_at IS NULL DO NOTHING
+                """,
+                (
+                    f"gap-{uuid.uuid4().hex[:12]}",
+                    rfi.question,
+                    normalized_question_sha256(rfi.question),
+                    report.reason,
+                    report.searched,
+                    json.dumps(query_embedding) if query_embedding else None,
+                ),
+            )
+    except Exception:  # logged and swallowed: telemetry must never break the answer path
+        logger.exception("failed to persist gap report")
 
 
 def create_app() -> FastAPI:
@@ -255,6 +262,8 @@ def create_app() -> FastAPI:
             final_state = graph.invoke({"rfi": rfi})
         response = final_state["response"].model_copy(update={"usage": trace.summary()})
         persist_trace(rfi, response, final_state.get("rfi_type"), trace)
+        if isinstance(response, GapReport):
+            persist_gap(rfi, response, final_state.get("query_embedding"))
         return response
 
     return app

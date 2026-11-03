@@ -56,7 +56,9 @@ def retrieve(state: dict) -> dict:
                 if row["id"] not in seen:
                     rows.append(row)
                     seen.add(row["id"])
-    return {"chunks": rows}
+    # The query embedding rides along so gap persistence can store it without
+    # a second Voyage call.
+    return {"chunks": rows, "query_embedding": embedding}
 
 
 def _superseded_doc_ids(conn: psycopg.Connection, doc_ids: set[str]) -> dict[str, str]:
