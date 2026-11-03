@@ -88,6 +88,12 @@ deployments only), and cross-origin access is denied unless
 `uvicorn --proxy-headers` so the rate limiter sees real client addresses
 rather than the proxy's.
 
+## API contract
+
+The frontend repo (aec-rfi-console) consumes a committed OpenAPI snapshot.
+To sync after changing the API surface: `.venv/bin/python scripts/export_openapi.py --out openapi.json`
+and copy the file into aec-rfi-console/packages/api-client/.
+
 ## Data
 
 All source documents are public (U.S. Unified Facilities Guide Specifications, public municipal tender packages). RFIs are synthetic, written in realistic RFI format. See [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md).
