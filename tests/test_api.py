@@ -283,6 +283,7 @@ def test_persist_trace_writes_request_and_stage_rows(monkeypatch):
     from src.schemas import RFIRequest
 
     stub = StubConnection()
+    monkeypatch.setenv("DATABASE_URL", "postgresql://stub")  # CI has no .env
     monkeypatch.setattr(api_main.psycopg, "connect", lambda *a, **kw: stub)
     response = CITED.model_copy(update={"usage": _usage_two_stages()})
     REAL_PERSIST_TRACE(RFIRequest(id="rfi-sql", question="  What   Primer? "),
@@ -307,6 +308,7 @@ def test_persist_trace_records_gap_verdict(monkeypatch):
     from src.schemas import RFIRequest
 
     stub = StubConnection()
+    monkeypatch.setenv("DATABASE_URL", "postgresql://stub")  # CI has no .env
     monkeypatch.setattr(api_main.psycopg, "connect", lambda *a, **kw: stub)
     response = GAP.model_copy(update={"usage": _usage_two_stages()})
     REAL_PERSIST_TRACE(RFIRequest(id="rfi-gv", question="q"), response, None, trace=None)
