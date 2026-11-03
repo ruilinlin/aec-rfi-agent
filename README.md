@@ -79,6 +79,15 @@ python -m src.ingest.index --source data/specs     # coming in MVP
 uvicorn src.api.main:app --reload                  # coming in MVP
 ```
 
+## Deployment notes
+
+The API ships with fail-closed hardening: POST bodies over 64KB are rejected,
+`POST /rfi` is rate limited per client IP (10/min, in-memory — single-process
+deployments only), and cross-origin access is denied unless
+`CORS_ALLOWED_ORIGINS` (comma-separated) is set. Behind a reverse proxy, run
+`uvicorn --proxy-headers` so the rate limiter sees real client addresses
+rather than the proxy's.
+
 ## Data
 
 All source documents are public (U.S. Unified Facilities Guide Specifications, public municipal tender packages). RFIs are synthetic, written in realistic RFI format. See [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md).
