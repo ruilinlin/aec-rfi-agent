@@ -8,26 +8,35 @@ IP (in-memory sliding window; single-process deployments only), and CORS is
 fail-closed: no cross-origin access unless CORS_ALLOWED_ORIGINS is set.
 """
 
+import hashlib
+import logging
 import math
 import os
+import re
 import time
+import uuid
 from collections import defaultdict, deque
 from collections.abc import Callable
+from contextlib import asynccontextmanager
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated
 
+import psycopg
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from src.agent.graph import build_graph
+from src.agent.trace import Trace, trace_run
 from src.schemas import CitedResponse, GapReport, RFIRequest
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 
 load_dotenv(ROOT / ".env")
+
+logger = logging.getLogger("aec_rfi_api")
 
 # Largest legitimate payload is a long question plus a few references (<10KB);
 # 64KB leaves ample headroom while bounding memory per request.
@@ -70,7 +79,9 @@ class SlidingWindowLimiter:
         while hits and now - hits[0] >= self.window_seconds:
             hits.popleft()
         if len(hits) >= self.limit:
-            return self.window_seconds - (now - hits[0])
+            # Guard the empty-deque edge (limit 0 = always blocked).
+            oldest = hits[0] if hits else now
+            return self.window_seconds - (now - oldest)
         hits.append(now)
         return None
 
@@ -90,11 +101,104 @@ def get_graph():
     return build_graph()
 
 
+def persist_trace(
+    rfi: RFIRequest, response: CitedResponse | GapReport, rfi_type: str | None, trace: Trace
+) -> None:
+    """Record one request's telemetry. Best-effort by design: observability
+    must never break the answer path, so every failure is logged and swallowed."""
+    try:
+        summary = response.usage
+        question_sha256 = hashlib.sha256(
+            re.sub(r"\s+", " ", rfi.question).strip().lower().encode()
+        ).hexdigest()
+        request_id = f"req-{uuid.uuid4().hex[:12]}"
+        with psycopg.connect(os.environ["DATABASE_URL"], connect_timeout=2) as conn:
+            conn.execute(
+                """
+                INSERT INTO rfi_requests
+                  (id, question_sha256, rfi_type, verdict, total_latency_ms, total_cost_usd)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    request_id,
+                    question_sha256,
+                    rfi_type,
+                    "gap" if isinstance(response, GapReport) else "answered",
+                    summary.total_latency_ms,
+                    summary.total_cost_usd,
+                ),
+            )
+            with conn.cursor() as cur:
+                cur.executemany(
+                    """
+                    INSERT INTO rfi_request_stages
+                      (request_id, stage, latency_ms, input_tokens, output_tokens, cost_usd, model)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    [
+                        (
+                            request_id,
+                            st.stage,
+                            st.latency_ms,
+                            st.input_tokens,
+                            st.output_tokens,
+                            st.cost_usd,
+                            st.model,
+                        )
+                        for st in summary.stages
+                    ],
+                )
+    except Exception:  # logged and swallowed: telemetry must never break the answer path
+        logger.exception("failed to persist request telemetry")
+
+
+# Mirror of db/init.sql: the Docker entrypoint only runs init.sql on a fresh
+# volume, so deployments initialized before this feature would otherwise never
+# get the telemetry tables (and the best-effort writes would fail silently).
+TELEMETRY_DDL = """
+CREATE TABLE IF NOT EXISTS rfi_requests (
+  id               TEXT PRIMARY KEY,
+  question_sha256  TEXT NOT NULL,
+  rfi_type         TEXT,
+  verdict          TEXT NOT NULL CHECK (verdict IN ('answered','gap')),
+  total_latency_ms INT NOT NULL,
+  total_cost_usd   NUMERIC(10,6) NOT NULL,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS rfi_request_stages (
+  request_id    TEXT NOT NULL REFERENCES rfi_requests(id) ON DELETE CASCADE,
+  stage         TEXT NOT NULL,
+  latency_ms    INT NOT NULL,
+  input_tokens  INT NOT NULL,
+  output_tokens INT NOT NULL,
+  cost_usd      NUMERIC(10,6) NOT NULL,
+  model         TEXT,
+  PRIMARY KEY (request_id, stage)
+);
+"""
+
+
+def ensure_telemetry_tables() -> None:
+    """Best-effort DDL at startup; an unreachable database must not block boot."""
+    try:
+        with psycopg.connect(os.environ["DATABASE_URL"], connect_timeout=2) as conn:
+            conn.execute(TELEMETRY_DDL)
+    except Exception:  # logged and swallowed: the API must boot without the DB
+        logger.exception("could not ensure telemetry tables")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    ensure_telemetry_tables()
+    yield
+
+
 def create_app() -> FastAPI:
     """App factory so tests can build an app against a modified environment."""
     app = FastAPI(
         title="aec-rfi-agent",
         description="Drafts cited answers to construction RFIs; reports gaps instead of guessing.",
+        lifespan=lifespan,
     )
 
     app.add_middleware(
@@ -147,8 +251,11 @@ def create_app() -> FastAPI:
         answer, and a GapReport when it does not. The drafted answer is for a
         licensed professional to review; the agent never issues final answers.
         """
-        final_state = graph.invoke({"rfi": rfi})
-        return final_state["response"]
+        with trace_run() as trace:
+            final_state = graph.invoke({"rfi": rfi})
+        response = final_state["response"].model_copy(update={"usage": trace.summary()})
+        persist_trace(rfi, response, final_state.get("rfi_type"), trace)
+        return response
 
     return app
 

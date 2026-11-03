@@ -42,3 +42,25 @@ CREATE TABLE IF NOT EXISTS chunks_fixed (
 
 CREATE INDEX IF NOT EXISTS chunks_fixed_tsv_idx ON chunks_fixed USING GIN (tsv);
 CREATE INDEX IF NOT EXISTS chunks_fixed_embedding_idx ON chunks_fixed USING hnsw (embedding vector_cosine_ops);
+
+-- Per-request pipeline telemetry (one row per POST /rfi, best-effort writes).
+CREATE TABLE IF NOT EXISTS rfi_requests (
+  id               TEXT PRIMARY KEY,
+  question_sha256  TEXT NOT NULL,
+  rfi_type         TEXT,
+  verdict          TEXT NOT NULL CHECK (verdict IN ('answered','gap')),
+  total_latency_ms INT NOT NULL,
+  total_cost_usd   NUMERIC(10,6) NOT NULL,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS rfi_request_stages (
+  request_id    TEXT NOT NULL REFERENCES rfi_requests(id) ON DELETE CASCADE,
+  stage         TEXT NOT NULL,
+  latency_ms    INT NOT NULL,
+  input_tokens  INT NOT NULL,
+  output_tokens INT NOT NULL,
+  cost_usd      NUMERIC(10,6) NOT NULL,
+  model         TEXT,
+  PRIMARY KEY (request_id, stage)
+);
