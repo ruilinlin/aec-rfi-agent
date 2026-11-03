@@ -1,0 +1,980 @@
+{
+  "timestamp": "20261103T182202Z",
+  "config": "ours-fixed-chunks",
+  "split": "test",
+  "git_sha": "a24a6b52b5db8b642dd4d41ef9bb39a4cd3024e5",
+  "llm_model": "claude-sonnet-5",
+  "embedding_model": "voyage-3.5",
+  "manifest_sha256": "eb2093ed02ee6d5e3a5435bfcd59e5226f307a32dc276b28eb8ac5c658ca9912",
+  "aggregate": {
+    "items": 40,
+    "errors": 0,
+    "retrieval_recall_at_5": 0.5862068965517241,
+    "retrieval_recall_at_10": 0.5862068965517241,
+    "citation_precision": 0.38850574712643676,
+    "citation_recall": 0.5172413793103449,
+    "abstain_rate_on_answerable": 0.09375,
+    "abstain_rate_on_unanswerable": 1.0,
+    "stale_revision_rate": 0.0
+  },
+  "items": [
+    {
+      "id": "test-001",
+      "rfi_type": "clarification",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-22-00-00:F:0140",
+          "section_code": "22 00 00",
+          "sheet": null,
+          "revision": "UFGS-2024-05",
+          "quote_span": "Storage water heaters that are not equipped with integral heat traps and having vertical pipe risers must be installed with heat traps directly on both the inlet and outlet.  Circulating systems need not have heat traps installed."
+        },
+        {
+          "chunk_id": "UFGS-22-00-00:F:0141",
+          "section_code": "22 00 00",
+          "sheet": null,
+          "revision": "UFGS-2024-05",
+          "quote_span": "An acceptable heat trap may be a piping arrangement such as elbows connected so that the inlet and outlet piping make vertically upward runs of not less than 600 mm 24 inches just before turning downward or directly horizontal into the water heater's inlet and outlet fittings.  Commercially available heat traps, specifically designed by the manufacturer for the purpose of effectively restricting the natural tendency of hot water to rise through vertical inlet and outlet piping during standby periods may also be approved."
+        },
+        {
+          "chunk_id": "UFGS-22-00-00:F:0141",
+          "section_code": "22 00 00",
+          "sheet": null,
+          "revision": "UFGS-2024-05",
+          "quote_span": "Piping to and from each water heater and hot water storage tank must be routed horizontally and downward a minimum of 610 mm 24 inches before turning in an upward direction."
+        },
+        {
+          "chunk_id": "UFGS-22-00-00:F:0141",
+          "section_code": "22 00 00",
+          "sheet": null,
+          "revision": "UFGS-2024-05",
+          "quote_span": "Connections of metallic pipe to water heaters must be made with dielectric unions or flanges.  Use of dielectric nipples is prohibited unless internally lined and specifically designed to limit current flow between dissimilar metals."
+        },
+        {
+          "chunk_id": "UFGS-22-00-00:F:0141",
+          "section_code": "22 00 00",
+          "sheet": null,
+          "revision": "UFGS-2024-05",
+          "quote_span": "A pre-charged expansion tank must be installed on the cold water supply between the water heater inlet and the cold water supply shut-off valve.  The Contractor must adjust the expansion tank air pressure, as recommended by the tank manufacturer, to match incoming water pressure."
+        }
+      ],
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0
+    },
+    {
+      "id": "test-002",
+      "rfi_type": "clarification",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-22-00-00:F:0128",
+          "section_code": "22 00 00",
+          "sheet": null,
+          "revision": "UFGS-2024-05",
+          "quote_span": "Pipes passing through roof must be installed through a 4.9 kg per square \nmeter 16 ounce copper flashing, each within an integral skirt or flange."
+        },
+        {
+          "chunk_id": "UFGS-22-00-00:F:0128",
+          "section_code": "22 00 00",
+          "sheet": null,
+          "revision": "UFGS-2024-05",
+          "quote_span": "the skirt or flange must extend not \nless than 200 mm 8 inches from the pipe and must be set over the roof or \nfloor membrane in a solid coating of bituminous cement.  The flashing must \nextend up the pipe a minimum of 250 mm 10 inches."
+        },
+        {
+          "chunk_id": "UFGS-22-00-00:F:0129",
+          "section_code": "22 00 00",
+          "sheet": null,
+          "revision": "UFGS-2024-05",
+          "quote_span": "Flashing for \ndry vents must be turned down into the pipe to form a waterproof joint."
+        },
+        {
+          "chunk_id": "UFGS-07-54-19:F:0044",
+          "section_code": "07 54 19",
+          "sheet": null,
+          "revision": "UFGS-2023-08",
+          "quote_span": "Extend base flashing not less than 200 mm 8 inch above \nroofing surface and as necessary to provide for seaming overlap on roof \nmembrane"
+        },
+        {
+          "chunk_id": "UFGS-07-54-19:F:0045",
+          "section_code": "07 54 19",
+          "sheet": null,
+          "revision": "UFGS-2023-08",
+          "quote_span": "Mechanically fasten top edge of base flashing with \nmanufacturer recommended termination bar fastened at maximum 300 mm 12 inch\n on center."
+        },
+        {
+          "chunk_id": "UFGS-07-54-19:F:0037",
+          "section_code": "07 54 19",
+          "sheet": null,
+          "revision": "UFGS-2023-08",
+          "quote_span": "Flash all roof edges, projections through the roof and changes in roof \nplanes.  Seal the seam a minimum of 75 mm 3 inches beyond the fasteners \nwhich attach the membrane to nailers."
+        }
+      ],
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "citation_precision": 0.16666666666666666,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "test-003",
+      "rfi_type": "clarification",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-22-00-00:F:0163",
+          "section_code": "22 00 00",
+          "sheet": null,
+          "revision": "UFGS-2024-05",
+          "quote_span": "After installation of the pan and finished floor, the drain must be\ntemporarily plugged below the weep holes.  The floor area must be flooded \nwith water to a minimum depth of 25 mm 1 inch for a period of 24 hours.  \nAny drop in the water level during test, except for evaporation, will be \nreason for rejection, repair, and retest."
+        }
+      ],
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "citation_precision": 1.0,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "test-004",
+      "rfi_type": "clarification",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-22-00-00:F:0169",
+          "section_code": "22 00 00",
+          "sheet": null,
+          "revision": "UFGS-2024-05",
+          "quote_span": "Disinfection must be repeated until bacterial tests indicate the absence of coliform organisms (zero mean coliform density per 100 milliliters) in the samples for at least 2 full days.  The system will not be accepted until satisfactory bacteriological results have been obtained."
+        }
+      ],
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0
+    },
+    {
+      "id": "test-005",
+      "rfi_type": "clarification",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-26-20-00:F:0091",
+          "section_code": "26 20 00",
+          "sheet": null,
+          "revision": "UFGS-2025-05",
+          "quote_span": "Install pull wires in empty conduits.  Pull wire:  plastic having minimum \n890-N 200-pound force tensile strength.  Leave minimum 915 mm 36 inches of \nslack at each end of pull wire."
+        }
+      ],
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0
+    },
+    {
+      "id": "test-006",
+      "rfi_type": "clarification",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-26-20-00:F:0110",
+          "section_code": "26 20 00",
+          "sheet": null,
+          "revision": "UFGS-2025-05",
+          "quote_span": "Make splices in conductors 6 mm^2 \nNo. 10 AWG and smaller diameter with insulated, pressure-type connector."
+        },
+        {
+          "chunk_id": "UFGS-26-20-00:F:0110",
+          "section_code": "26 20 00",
+          "sheet": null,
+          "revision": "UFGS-2025-05",
+          "quote_span": "Make splices in accessible locations."
+        },
+        {
+          "chunk_id": "UFGS-26-20-00:F:0028",
+          "section_code": "26 20 00",
+          "sheet": null,
+          "revision": "UFGS-2025-05",
+          "quote_span": "Connectors for 6 mm^2 No. 10 AWG and smaller diameter wires:  insulated, \npressure-type in accordance with UL 486A-486B or UL 486C (twist-on \nsplicing connector)."
+        }
+      ],
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0
+    },
+    {
+      "id": "test-007",
+      "rfi_type": "clarification",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-26-20-00:F:0114",
+          "section_code": "26 20 00",
+          "sheet": null,
+          "revision": "UFGS-2025-05",
+          "quote_span": "Do not exceed 25 ohms under normally dry conditions for the maximum resistance of a driven ground"
+        },
+        {
+          "chunk_id": "UFGS-26-20-00:F:0114",
+          "section_code": "26 20 00",
+          "sheet": null,
+          "revision": "UFGS-2025-05",
+          "quote_span": "provide [_____] additional rods, spaced on center.  Spacing for additional rods must be a minimum of 3 meters 10 feet"
+        },
+        {
+          "chunk_id": "UFGS-26-20-00:F:0114",
+          "section_code": "26 20 00",
+          "sheet": null,
+          "revision": "UFGS-2025-05",
+          "quote_span": "If the resultant resistance exceeds 25 ohms measured not less than 48 hours after rainfall, notify the Contracting Officer who will decide on the number of ground rods to add"
+        },
+        {
+          "chunk_id": "UFGS-26-20-00:F:0116",
+          "section_code": "26 20 00",
+          "sheet": null,
+          "revision": "UFGS-2025-05",
+          "quote_span": "Maximum resistance-to-ground of grounding system:  do not exceed [5][_____] ohms under dry conditions.  Where resistance obtained exceeds [5][_____] ohms, contact Contracting Officer for further instructions"
+        },
+        {
+          "chunk_id": "UFGS-26-20-00:F:0122",
+          "section_code": "26 20 00",
+          "sheet": null,
+          "revision": "UFGS-2025-05",
+          "quote_span": "Make resistance measurements in dry weather, not earlier than 48 hours after rainfall.  Submit written results of each test to Contracting Officer, and indicate location of rods as well as resistance and soil conditions at time measurements were made."
+        }
+      ],
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "citation_precision": 0.6,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "test-008",
+      "rfi_type": "clarification",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-26-51-00:F:0015",
+          "section_code": "26 51 00",
+          "sheet": null,
+          "revision": "UFGS-2020-05",
+          "quote_span": "Provide a written five year minimum replacement warranty for material, \nluminaire finish, and workmanship."
+        },
+        {
+          "chunk_id": "UFGS-26-51-00:F:0016",
+          "section_code": "26 51 00",
+          "sheet": null,
+          "revision": "UFGS-2020-05",
+          "quote_span": "(a)  All LED drivers and integral control equipment."
+        },
+        {
+          "chunk_id": "UFGS-26-51-00:F:0016",
+          "section_code": "26 51 00",
+          "sheet": null,
+          "revision": "UFGS-2020-05",
+          "quote_span": "Replacement when more than 15 percent of LED sources in any \nlightbar or subassembly(s) are defective, non-starting, or \noperating below 70 percent of specified lumen output."
+        },
+        {
+          "chunk_id": "UFGS-26-51-00:F:0016",
+          "section_code": "26 51 00",
+          "sheet": null,
+          "revision": "UFGS-2020-05",
+          "quote_span": "Warranty period must begin in accordance with the manufacturer's \nstandard warranty starting date."
+        }
+      ],
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "citation_precision": 0.75,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "test-009",
+      "rfi_type": "clarification",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-26-51-00:F:0015",
+          "section_code": "26 51 00",
+          "sheet": null,
+          "revision": "UFGS-2020-05",
+          "quote_span": "Do not use products manufactured more than six months prior to date of delivery to site, unless specified otherwise."
+        }
+      ],
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "citation_precision": 1.0,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "test-010",
+      "rfi_type": "clarification",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-08-51-13:F:0043",
+          "section_code": "08 51 13",
+          "sheet": null,
+          "revision": "UFGS-2019-05",
+          "quote_span": "Windows installed in masonry walls must have head and jamb members designed to recess into masonry wall not less than 11 mm 7/16 inch"
+        }
+      ],
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0
+    },
+    {
+      "id": "test-011",
+      "rfi_type": "clarification",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-09-65-00:F:0010",
+          "section_code": "09 65 00",
+          "sheet": null,
+          "revision": "UFGS-2024-11",
+          "quote_span": "Maintain areas to receive resilient flooring at a temperature above 21 \ndegrees C 70 degrees F and below 30 degrees C 85 degrees F for 3 days \nbefore application, during application and 2 days after application, \nunless otherwise directed by the flooring manufacturer for the flooring \nbeing installed.  Maintain a minimum temperature of 13 degrees C 55 \ndegrees F thereafter.  Provide adequate ventilation to remove moisture \nfrom area and to comply with regulations limiting concentrations of \nhazardous vapors."
+        }
+      ],
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0
+    },
+    {
+      "id": "test-012",
+      "rfi_type": "clarification",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-09-51-00:F:0008",
+          "section_code": "09 51 00",
+          "sheet": null,
+          "revision": "UFGS-2020-08",
+          "quote_span": "Maintain a uniform temperature of not less than 16 degrees C 60 degrees F nor more than 29 degrees C 85 degrees F and a relative humidity of not more than 70 percent for 24 hours before, during, and 24 hours after installation of acoustical units."
+        },
+        {
+          "chunk_id": "UFGS-09-51-00:F:0008",
+          "section_code": "09 51 00",
+          "sheet": null,
+          "revision": "UFGS-2020-08",
+          "quote_span": "Immediately before installation, store acoustical units for not less than 24 hours at the same temperature and relative humidity as the space where they will be installed in order to assure proper temperature and moisture acclimation."
+        },
+        {
+          "chunk_id": "UFGS-09-51-00:F:0009",
+          "section_code": "09 51 00",
+          "sheet": null,
+          "revision": "UFGS-2020-08",
+          "quote_span": "Complete mechanical, electrical, and other work above the ceiling line; install and start operating heating, ventilating, and air conditioning systems in order to maintain temperature and humidity requirements."
+        }
+      ],
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0
+    },
+    {
+      "id": "test-013",
+      "rfi_type": "clarification",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-09-29-00:F:0038",
+          "section_code": "09 29 00",
+          "sheet": null,
+          "revision": "UFGS-2024-08",
+          "quote_span": "Wherever gypsum board is to receive eggshell, semigloss, or gloss paint finish, or where severe, up or down lighting conditions occur, finish gypsum wall surface in accordance to GA 214 Level 5."
+        },
+        {
+          "chunk_id": "UFGS-09-29-00:F:0038",
+          "section_code": "09 29 00",
+          "sheet": null,
+          "revision": "UFGS-2024-08",
+          "quote_span": "apply a thin skim coat of joint compound to the entire gypsum board surface, after the two-coat joint and fastener treatment is complete and dry"
+        },
+        {
+          "chunk_id": "UFGS-09-29-00:F:0037",
+          "section_code": "09 29 00",
+          "sheet": null,
+          "revision": "UFGS-2024-08",
+          "quote_span": "Unless otherwise specified, finish all gypsum board walls, partitions, and ceilings to Level 5 in accordance with GA 214."
+        }
+      ],
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "citation_precision": 0.6666666666666666,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "test-014",
+      "rfi_type": "clarification",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-09-90-00:F:0027",
+          "section_code": "09 90 00",
+          "sheet": null,
+          "revision": "UFGS-2026-08",
+          "quote_span": "Vacate space for as long as possible after application.  Wait a minimum of \n48 hours before occupying freshly painted rooms.  Maintain one of the \nfollowing ventilation conditions during the curing period, or for 72 hours \nafter application:\na.  Supply 100 percent outside air 24 hours a day.\nb.  Supply airflow at a rate of 6 air changes per hour, when outside \ntemperatures are between 13 degrees C 55 degrees F and 29 degrees C 85 \ndegrees F and humidity is between 30 percent and 60 percent."
+        },
+        {
+          "chunk_id": "UFGS-09-90-00:F:0028",
+          "section_code": "09 90 00",
+          "sheet": null,
+          "revision": "UFGS-2026-08",
+          "quote_span": "Supply airflow at a rate of 1.5 air changes per hour, when outside air \nconditions are not within the range stipulated above."
+        }
+      ],
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "citation_precision": 1.0,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "test-015",
+      "rfi_type": "conflict",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-26-51-00:F:0055",
+          "section_code": "26 51 00",
+          "sheet": null,
+          "revision": "UFGS-2020-05",
+          "quote_span": "Support recessed and semi-recessed luminaires independently from the \nbuilding structure by a minimum of two wires, straps or rods per \nluminaire and located near opposite corners of the luminaire.  Secure \nhorizontal movement with clips provided by manufacturer.  Ceiling grid \nclips are not allowed as an alternative to independently supported \nluminaires."
+        },
+        {
+          "chunk_id": "UFGS-26-51-00:F:0055",
+          "section_code": "26 51 00",
+          "sheet": null,
+          "revision": "UFGS-2020-05",
+          "quote_span": "Support round luminaires or luminaires smaller in size than the \nceiling grid independently from the building structure by a minimum of \nfour wires, straps or rods per luminaire, spaced approximately \nequidistant around."
+        },
+        {
+          "chunk_id": "UFGS-26-51-00:F:0055",
+          "section_code": "26 51 00",
+          "sheet": null,
+          "revision": "UFGS-2020-05",
+          "quote_span": "Do not support luminaires by acoustical tile ceiling panels."
+        },
+        {
+          "chunk_id": "UFGS-26-51-00:F:0054",
+          "section_code": "26 51 00",
+          "sheet": null,
+          "revision": "UFGS-2020-05",
+          "quote_span": "Support suspended luminaires from structural framework of \nceiling or from inserts cast into slab."
+        },
+        {
+          "chunk_id": "UFGS-26-51-00:F:0056",
+          "section_code": "26 51 00",
+          "sheet": null,
+          "revision": "UFGS-2020-05",
+          "quote_span": "Luminaires installed in suspended ceilings must also comply with the\nrequirements of Section 09 51 00 ACOUSTICAL CEILINGS."
+        },
+        {
+          "chunk_id": "UFGS-09-51-00:F:0037",
+          "section_code": "09 51 00",
+          "sheet": null,
+          "revision": "UFGS-2020-08",
+          "quote_span": "Where lighting fixtures are supported from the suspended \nceiling system, provide hangers at a minimum of four hangers per fixture \nand located not more than 152 mm 6 inch from each corner of each fixture."
+        }
+      ],
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "citation_precision": 0.3333333333333333,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "test-016",
+      "rfi_type": "conflict",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-07-92-00:F:0004",
+          "section_code": "07 92 00",
+          "sheet": null,
+          "revision": "UFGS-2023-08",
+          "quote_span": "Apply sealant when the ambient temperature is between 4 and 32 degrees C 40 and 90 degrees F."
+        },
+        {
+          "chunk_id": "UFGS-09-90-00:F:0036",
+          "section_code": "09 90 00",
+          "sheet": null,
+          "revision": "UFGS-2026-08",
+          "quote_span": "Temperatures must remain between 4 degrees C 38 degrees F and 35 degrees C 95 degrees F when applying sealant."
+        }
+      ],
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0
+    },
+    {
+      "id": "test-017",
+      "rfi_type": "conflict",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-26-20-00:F:0092",
+          "section_code": "26 20 00",
+          "sheet": null,
+          "revision": "UFGS-2025-05",
+          "quote_span": "MC Cable is also allowed for branch circuits in the following locations:\na.  New construction in exposed locations."
+        },
+        {
+          "chunk_id": "UFGS-26-20-00:F:0092",
+          "section_code": "26 20 00",
+          "sheet": null,
+          "revision": "UFGS-2025-05",
+          "quote_span": "MC Cable is prohibited in the following locations:\na.  Feeder circuits other than feeder circuits for aerial messengers \nbetween buildings.\nb.  Embedded or direct buried locations.\nc.  Concealed locations, except as allowed above."
+        },
+        {
+          "chunk_id": "UFGS-26-20-00:F:0092",
+          "section_code": "26 20 00",
+          "sheet": null,
+          "revision": "UFGS-2025-05",
+          "quote_span": "Install in accordance with NFPA 70, Type MC cable."
+        }
+      ],
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "citation_precision": 1.0,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "test-018",
+      "rfi_type": "conflict",
+      "answerable": true,
+      "abstained": true,
+      "citations": []
+    },
+    {
+      "id": "test-019",
+      "rfi_type": "conflict",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-26-20-00:F:0094",
+          "section_code": "26 20 00",
+          "sheet": null,
+          "revision": "UFGS-2025-05",
+          "quote_span": "Do not encase in concrete, mortar, grout, or other cementitious \nmaterials."
+        },
+        {
+          "chunk_id": "UFGS-26-20-00:F:0097",
+          "section_code": "26 20 00",
+          "sheet": null,
+          "revision": "UFGS-2025-05",
+          "quote_span": "[Rigid steel; steel IMC; fiberglass, or PVC, Type EPC-40.][PVC, Type \nEPC-40, unless indicated otherwise.  ]Locate so as not to adversely affect \nstructural strength of slabs."
+        }
+      ],
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "citation_precision": 0.5,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "test-020",
+      "rfi_type": "conflict",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-09-90-00:F:0027",
+          "section_code": "09 90 00",
+          "sheet": null,
+          "revision": "UFGS-2026-08",
+          "quote_span": "Below 10 degrees C 50 degrees F or over 35 degrees C 95 degrees F, unless specifically pre-approved by the Contracting Officer and the product manufacturer.  Apply coatings in accordance with the manufacturer's written application recommendations."
+        },
+        {
+          "chunk_id": "UFGS-09-90-00:F:0028",
+          "section_code": "09 90 00",
+          "sheet": null,
+          "revision": "UFGS-2026-08",
+          "quote_span": "minimum and maximum application temperature and humidity"
+        }
+      ],
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "citation_precision": 0.5,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "test-021",
+      "rfi_type": "substitution",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-22-00-00:F:0161",
+          "section_code": "22 00 00",
+          "sheet": null,
+          "revision": "UFGS-2024-05",
+          "quote_span": "the drainage and vent system final \ntest must include the smoke test.  The Contractor has the option to \nperform a peppermint test in lieu of the smoke test.  If a peppermint test \nis chosen, the Contractor must submit a testing procedure and reasons for \nchoosing this option in lieu of the smoke test to the Contracting Officer \nfor approval."
+        }
+      ],
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "citation_precision": 1.0,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "test-022",
+      "rfi_type": "substitution",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-26-20-00:F:0099",
+          "section_code": "26 20 00",
+          "sheet": null,
+          "revision": "UFGS-2025-05",
+          "quote_span": "Plastic cable ties are not acceptable."
+        },
+        {
+          "chunk_id": "UFGS-26-20-00:F:0099",
+          "section_code": "26 20 00",
+          "sheet": null,
+          "revision": "UFGS-2025-05",
+          "quote_span": "In suspended-ceiling construction, run conduit above ceiling.  Do not support conduit by ceiling support system."
+        },
+        {
+          "chunk_id": "UFGS-26-20-00:F:0099",
+          "section_code": "26 20 00",
+          "sheet": null,
+          "revision": "UFGS-2025-05",
+          "quote_span": "Conduit and box systems:  supported independently of both (a) tie wires supporting ceiling grid system, and (b) ceiling grid system into which ceiling panels are placed."
+        },
+        {
+          "chunk_id": "UFGS-26-20-00:F:0099",
+          "section_code": "26 20 00",
+          "sheet": null,
+          "revision": "UFGS-2025-05",
+          "quote_span": "Fasten by wood screws to wood; by toggle bolts on hollow masonry units; by concrete inserts or expansion bolts on concrete or brick; and by machine screws, welded threaded studs, or spring-tension clamps on steel work."
+        }
+      ],
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "citation_precision": 1.0,
+      "citation_recall": 1.0
+    },
+    {
+      "id": "test-023",
+      "rfi_type": "substitution",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-26-51-00:F:0014",
+          "section_code": "26 51 00",
+          "sheet": null,
+          "revision": "UFGS-2020-05",
+          "quote_span": "Products must have been in satisfactory commercial or industrial use for six months prior to bid opening."
+        },
+        {
+          "chunk_id": "UFGS-26-51-00:F:0014",
+          "section_code": "26 51 00",
+          "sheet": null,
+          "revision": "UFGS-2020-05",
+          "quote_span": "The six-month period must include applications of equipment and materials under similar circumstances and of similar size."
+        },
+        {
+          "chunk_id": "UFGS-26-51-00:F:0014",
+          "section_code": "26 51 00",
+          "sheet": null,
+          "revision": "UFGS-2020-05",
+          "quote_span": "The product must have been on sale on the commercial market through advertisements, manufacturers' catalogs, or brochures during the six-month period."
+        },
+        {
+          "chunk_id": "UFGS-26-51-00:F:0015",
+          "section_code": "26 51 00",
+          "sheet": null,
+          "revision": "UFGS-2020-05",
+          "quote_span": "d record of satisfactory field operation for not less than 6000 hours, exclusive of the manufacturers' factory or laboratory tests, is furnished."
+        }
+      ],
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0
+    },
+    {
+      "id": "test-024",
+      "rfi_type": "substitution",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-22-00-00:F:0141",
+          "section_code": "22 00 00",
+          "sheet": null,
+          "revision": "UFGS-2024-05",
+          "quote_span": "Connections of metallic pipe to water heaters must be made with dielectric unions or flanges.  Use of dielectric nipples is prohibited unless internally lined and specifically designed to limit current flow between dissimilar metals."
+        },
+        {
+          "chunk_id": "UFGS-22-00-00:F:0123",
+          "section_code": "22 00 00",
+          "sheet": null,
+          "revision": "UFGS-2024-05",
+          "quote_span": "Connections between ferrous and non-ferrous copper water pipe must be made with dielectric unions or flange waterways."
+        }
+      ],
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0
+    },
+    {
+      "id": "test-025",
+      "rfi_type": "unanswerable",
+      "answerable": false,
+      "abstained": true,
+      "citations": []
+    },
+    {
+      "id": "test-026",
+      "rfi_type": "unanswerable",
+      "answerable": false,
+      "abstained": true,
+      "citations": []
+    },
+    {
+      "id": "test-027",
+      "rfi_type": "unanswerable",
+      "answerable": false,
+      "abstained": true,
+      "citations": []
+    },
+    {
+      "id": "test-028",
+      "rfi_type": "unanswerable",
+      "answerable": false,
+      "abstained": true,
+      "citations": []
+    },
+    {
+      "id": "test-029",
+      "rfi_type": "unanswerable",
+      "answerable": false,
+      "abstained": true,
+      "citations": []
+    },
+    {
+      "id": "test-030",
+      "rfi_type": "unanswerable",
+      "answerable": false,
+      "abstained": true,
+      "citations": []
+    },
+    {
+      "id": "test-031",
+      "rfi_type": "unanswerable",
+      "answerable": false,
+      "abstained": true,
+      "citations": []
+    },
+    {
+      "id": "test-032",
+      "rfi_type": "unanswerable",
+      "answerable": false,
+      "abstained": true,
+      "citations": []
+    },
+    {
+      "id": "test-033",
+      "rfi_type": "superseded_ref",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-09-90-00:F:0013",
+          "section_code": "09 90 00",
+          "sheet": null,
+          "revision": "UFGS-2026-08",
+          "quote_span": "Allow paint, polyurethane, varnish, and wood stain installations to cure \nprior to the installation of materials that adsorb VOCs, including[ \ncarpets,][ textiles,][ unprimed gypsum wallboard,][ acoustical ceiling \npanels,] [_____]."
+        }
+      ],
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0,
+      "cited_stale_revision": false
+    },
+    {
+      "id": "test-034",
+      "rfi_type": "superseded_ref",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-09-90-00:F:0061",
+          "section_code": "09 90 00",
+          "sheet": null,
+          "revision": "UFGS-2026-08",
+          "quote_span": "stencil approved names or code letters, in letters a minimum of 13 mm 1/2 \ninch high for piping and a minimum of 50 mm 2 inches high elsewhere"
+        },
+        {
+          "chunk_id": "UFGS-09-90-00:F:0058",
+          "section_code": "09 90 00",
+          "sheet": null,
+          "revision": "UFGS-2026-08",
+          "quote_span": "For pipe sizes 100 mm 4-inch and larger \nprovide white painted stenciled letters and arrows, a minimum of 50 mm \n2 in in height"
+        }
+      ],
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0,
+      "cited_stale_revision": false
+    },
+    {
+      "id": "test-035",
+      "rfi_type": "superseded_ref",
+      "answerable": true,
+      "abstained": true,
+      "citations": [],
+      "cited_stale_revision": false
+    },
+    {
+      "id": "test-036",
+      "rfi_type": "superseded_ref",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-09-90-00:F:0047",
+          "section_code": "09 90 00",
+          "sheet": null,
+          "revision": "UFGS-2026-08",
+          "quote_span": "Achieve the anchor \nprofile recommended by the manufacturer using the appropriate abrasive."
+        }
+      ],
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "citation_precision": 1.0,
+      "citation_recall": 1.0,
+      "cited_stale_revision": false
+    },
+    {
+      "id": "test-037",
+      "rfi_type": "superseded_ref",
+      "answerable": true,
+      "abstained": true,
+      "citations": [],
+      "cited_stale_revision": false
+    },
+    {
+      "id": "test-038",
+      "rfi_type": "superseded_ref",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-09-90-00:F:0015",
+          "section_code": "09 90 00",
+          "sheet": null,
+          "revision": "UFGS-2026-08",
+          "quote_span": "SD-01 Preconstruction Submittals\nContract Errors, Omissions, and Other Discrepancies; G, [_____]\nCoating Contractor Qualifications; G, [_____]\nSD-02 Shop Drawings\nPiping Identification\nSD-03 Product Data\nProduct Data Sheets; G, [_____]\nSealant\nSD-04 Samples\nColor; G, [_____]"
+        },
+        {
+          "chunk_id": "UFGS-09-90-00:F:0015",
+          "section_code": "09 90 00",
+          "sheet": null,
+          "revision": "UFGS-2026-08",
+          "quote_span": "SD-07 Certificates\nQualification Testing; G, [_____]\nQualification Testing Laboratory; G, [_____]\nIndoor Air Quality for Paints and Primers"
+        },
+        {
+          "chunk_id": "UFGS-09-90-00:F:0015",
+          "section_code": "09 90 00",
+          "sheet": null,
+          "revision": "UFGS-2026-08",
+          "quote_span": "SD-08 Manufacturer's Instructions\nApplication Instructions\nManufacturer's Safety Data Sheets\nSD-10 Operation and Maintenance Data\nMaintenance Instructions; G, [_____]"
+        }
+      ],
+      "recall_at_5": 0.0,
+      "recall_at_10": 0.0,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0,
+      "cited_stale_revision": false
+    },
+    {
+      "id": "test-039",
+      "rfi_type": "superseded_ref",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-09-90-00:F:0111",
+          "section_code": "09 90 00",
+          "sheet": null,
+          "revision": "UFGS-2026-08",
+          "quote_span": "3.12.2.5   MPI Division 9:  Interior Plaster, Gypsum Board, Textured \nSurfaces Paint Table"
+        }
+      ],
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "citation_precision": 0.0,
+      "citation_recall": 0.0,
+      "cited_stale_revision": false
+    },
+    {
+      "id": "test-040",
+      "rfi_type": "superseded_ref",
+      "answerable": true,
+      "abstained": false,
+      "citations": [
+        {
+          "chunk_id": "UFGS-09-90-00:F:0020",
+          "section_code": "09 90 00",
+          "sheet": null,
+          "revision": "UFGS-2026-08",
+          "quote_span": "1.7.5   Coating Sampling and Testing"
+        },
+        {
+          "chunk_id": "UFGS-09-90-00:F:0021",
+          "section_code": "09 90 00",
+          "sheet": null,
+          "revision": "UFGS-2026-08",
+          "quote_span": "Take samples of each chosen product as\nspecified in the paragraph SAMPLING PROCEDURE."
+        },
+        {
+          "chunk_id": "UFGS-09-90-00:F:0021",
+          "section_code": "09 90 00",
+          "sheet": null,
+          "revision": "UFGS-2026-08",
+          "quote_span": "The Contractor must provide one liter one quart samples of each part of \nthe selected paint materials.  Mix the individual container of each \ncomponent prior to sampling each component."
+        },
+        {
+          "chunk_id": "UFGS-09-90-00:F:0021",
+          "section_code": "09 90 00",
+          "sheet": null,
+          "revision": "UFGS-2026-08",
+          "quote_span": "Take samples in the presence of the Contracting Officer, and label, and \nidentify each sample.  Provide labels in accordance with the paragraph \nDELIVERY AND STORAGE."
+        }
+      ],
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "citation_precision": 0.75,
+      "citation_recall": 1.0,
+      "cited_stale_revision": false
+    }
+  ]
+}

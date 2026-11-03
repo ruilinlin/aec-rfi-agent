@@ -53,7 +53,21 @@ The project ships with a small, open benchmark of RFIs written against public sp
 | Gap-detection F1 | Does the agent say "not found" on unanswerable RFIs? |
 | Stale-revision rate | How often a superseded revision drives the answer |
 
-Results table: _coming with the MVP_ (naive RAG vs. hybrid RAG vs. this agent, plus ablations).
+### Results (test split, 40 items, single run)
+
+| Config | Recall@10 | Citation P | Citation R | Abstain on answerable | Abstain on unanswerable | Stale-revision rate |
+|---|---|---|---|---|---|---|
+| B0 — LLM only | 0% | 0% | 0% | 0% | **0%** | — |
+| B1 — naive RAG (fixed chunks, dense) | 53% | 31% | 39% | 0% | 0% | 0% |
+| B2 — hybrid RAG (section chunks) | 100% | 87% | 100% | 0% | **0%** | **62%** |
+| **Ours — full agent** | **100%** | **86%** | **100%** | 3% | **88%** | **0%** |
+| − cross_check | 100% | 80% | 100% | 0% | 88% | **86%** |
+| − verify | 97% | 77% | 97% | 0% | **0%** | 0% |
+| − section chunking | 59% | 39% | 52% | 9% | 100% | 0% |
+
+Each ablation isolates its component: removing **cross_check** sends the stale-revision rate from 0% to 86% (the agent happily cites superseded clauses); removing **verify** collapses gap detection from 88% to 0% (every unanswerable trap gets answered); swapping section-aware chunking for fixed-size chunks drops retrieval recall from 100% to 59%. B2 shows that strong retrieval alone neither refuses unanswerable questions nor avoids superseded revisions — the deterministic governance and verification layers are where the safety comes from.
+
+Caveats: single run per config (the verifier is non-deterministic — Claude 5 exposes no temperature control); 2 of 280 run items errored and are excluded from rates (recorded in the result files); bench questions and gold labels were LLM-drafted and author-verified item by item. Full per-run records with git SHA, model ids, and corpus manifest hash: `eval/results/`.
 
 ## Quickstart
 
