@@ -168,7 +168,19 @@ def evaluate(config_name: str, split: str) -> dict:
     per_item = []
     for item in items:
         print(f"running {item['id']} ({item['rfi_type']})...")
-        output = run_config(item)
+        try:
+            output = run_config(item)
+        except Exception as exc:  # noqa: BLE001 - a long run must survive one bad item
+            print(f"  ERROR {item['id']}: {type(exc).__name__}: {exc}")
+            per_item.append(
+                {
+                    "id": item["id"],
+                    "rfi_type": item["rfi_type"],
+                    "answerable": item["answerable"],
+                    "error": f"{type(exc).__name__}: {exc}",
+                }
+            )
+            continue
         record = {
             "id": item["id"],
             "rfi_type": item["rfi_type"],
@@ -206,16 +218,18 @@ def evaluate(config_name: str, split: str) -> dict:
             record["cited_stale_revision"] = False  # abstaining never cites stale text
         per_item.append(record)
 
-    answered = [r for r in per_item if r["answerable"] and not r["abstained"]]
-    unanswerable = [r for r in per_item if not r["answerable"]]
+    valid = [r for r in per_item if "error" not in r]
+    answered = [r for r in valid if r["answerable"] and not r["abstained"]]
+    unanswerable = [r for r in valid if not r["answerable"]]
     aggregate = {
         "items": len(per_item),
+        "errors": len(per_item) - len(valid),
         "retrieval_recall_at_5": mean([r["recall_at_5"] for r in answered]),
         "retrieval_recall_at_10": mean([r["recall_at_10"] for r in answered]),
         "citation_precision": mean([r["citation_precision"] for r in answered]),
         "citation_recall": mean([r["citation_recall"] for r in answered]),
         "abstain_rate_on_answerable": mean(
-            [1.0 if r["abstained"] else 0.0 for r in per_item if r["answerable"]]
+            [1.0 if r["abstained"] else 0.0 for r in valid if r["answerable"]]
         ),
         "abstain_rate_on_unanswerable": mean(
             [1.0 if r["abstained"] else 0.0 for r in unanswerable]
@@ -223,7 +237,7 @@ def evaluate(config_name: str, split: str) -> dict:
         "stale_revision_rate": mean(
             [
                 1.0 if r["cited_stale_revision"] else 0.0
-                for r in per_item
+                for r in valid
                 if "cited_stale_revision" in r
             ]
         ),
