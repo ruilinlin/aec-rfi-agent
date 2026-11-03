@@ -88,36 +88,59 @@ def mean(values: list[float]) -> float | None:
 # --- configurations ---------------------------------------------------------
 
 
-def run_ours(item: dict) -> dict:
-    """Full agent. Returns retrieved chunks, predicted citations, abstained flag."""
-    from src.agent.graph import build_graph
-    from src.schemas import GapReport, RFIRequest
+def _agent_config(retrieval_table: str = "chunks", **graph_kwargs):
+    """Build a config function around one compiled agent-graph variant."""
+    cache: dict = {}
 
-    rfi = RFIRequest(
-        id=item["id"], question=item["question"], references=item.get("references_in_question", [])
-    )
-    graph = run_ours.graph or build_graph()
-    run_ours.graph = graph
-    state = graph.invoke({"rfi": rfi})
-    response = state["response"]
-    if isinstance(response, GapReport):
+    def run(item: dict) -> dict:
+        from src.agent.graph import build_graph
+        from src.schemas import GapReport, RFIRequest
+
+        if "graph" not in cache:
+            cache["graph"] = build_graph(**graph_kwargs)
+        rfi = RFIRequest(
+            id=item["id"],
+            question=item["question"],
+            references=item.get("references_in_question", []),
+        )
+        state = cache["graph"].invoke({"rfi": rfi, "retrieval_table": retrieval_table})
+        response = state["response"]
+        if isinstance(response, GapReport):
+            return {
+                "chunks": state["chunks"],
+                "citations": [],
+                "abstained": True,
+                "abstain_reason": response.reason,
+            }
         return {
             "chunks": state["chunks"],
-            "citations": [],
-            "abstained": True,
-            "abstain_reason": response.reason,
+            "citations": [c.model_dump() for c in response.citations],
+            "abstained": False,
+            "answer": response.answer,
         }
-    return {
-        "chunks": state["chunks"],
-        "citations": [c.model_dump() for c in response.citations],
-        "abstained": False,
-        "answer": response.answer,
-    }
+
+    return run
 
 
-run_ours.graph = None
+def _baseline(module_name: str):
+    def run(item: dict) -> dict:
+        import importlib
 
-CONFIGS = {"ours": run_ours}
+        module = importlib.import_module(f"eval.baselines.{module_name}")
+        return module.run(item)
+
+    return run
+
+
+CONFIGS = {
+    "b0": _baseline("b0_no_retrieval"),
+    "b1": _baseline("b1_naive_rag"),
+    "b2": _baseline("b2_hybrid_rag"),
+    "ours": _agent_config(),
+    "ours-no-crosscheck": _agent_config(with_cross_check=False),
+    "ours-no-verify": _agent_config(with_verify=False),
+    "ours-fixed-chunks": _agent_config(retrieval_table="chunks_fixed"),
+}
 
 
 # --- harness ----------------------------------------------------------------

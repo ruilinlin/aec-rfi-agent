@@ -36,6 +36,7 @@ def hybrid_search(
     filters: dict | None = None,
     fetch_k: int = 50,
     embedding: list[float] | None = None,
+    table: str = "chunks",
 ) -> list[dict]:
     """Embed the question, run both searches, fuse with RRF, return top-k rows.
 
@@ -45,8 +46,8 @@ def hybrid_search(
     """
     if embedding is None:
         embedding = embed_texts([question], input_type="query")[0]
-    dense = dense_search(conn, embedding, fetch_k, filters)
-    keyword = keyword_search(conn, question, fetch_k, filters)
+    dense = dense_search(conn, embedding, fetch_k, filters, table=table)
+    keyword = keyword_search(conn, question, fetch_k, filters, table=table)
 
     rows_by_id = {row["id"]: row for row in dense + keyword}
     scores = rrf_fuse([[r["id"] for r in dense], [r["id"] for r in keyword]])

@@ -102,3 +102,26 @@ def test_chunk_pages_end_to_end():
     assert summary["page"] == 2  # body page 1 is the PDF's page 2
     included = next(c for c in chunks if c["section_path"] == "PART 1 > 1.2 > 1.2.1")
     assert included["page"] == 3
+
+
+def test_fixed_chunks_cuts_by_size_with_overlap():
+    from src.ingest.chunk import fixed_chunks
+
+    body = "PART 1   GENERAL\n" + "\n".join(f"line {i} of filler text for the chunker" for i in range(60))
+    pages = [TOC_PAGE, body]
+    chunks = fixed_chunks(pages, size=400, overlap=80)
+    assert len(chunks) > 1
+    assert all(len(c["text"]) <= 400 + 80 for c in chunks)
+    # Overlap: the head of each chunk repeats the tail of the previous one.
+    assert chunks[1]["text"].startswith(chunks[0]["text"][-80:])
+
+
+def test_fixed_chunks_tags_section_path_at_chunk_start():
+    from src.ingest.chunk import fixed_chunks
+
+    part2_body = "\n".join(f"product requirement number {i}" for i in range(30))
+    pages = [TOC_PAGE, BODY_PAGE_1, "PART 2   PRODUCTS\n" + part2_body]
+    chunks = fixed_chunks(pages, size=150, overlap=20)
+    assert chunks[0]["section_path"].startswith("PART 1")
+    # A chunk starting inside the long PART 2 body carries the PART 2 path.
+    assert any(c["section_path"] == "PART 2" for c in chunks)

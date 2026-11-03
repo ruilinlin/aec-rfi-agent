@@ -21,7 +21,7 @@ import psycopg
 from dotenv import load_dotenv
 from pgvector.psycopg import register_vector
 
-from src.ingest.chunk import chunk_pages
+from src.ingest.chunk import chunk_pages, fixed_chunks
 from src.ingest.loaders import load_pdf
 from src.ingest.metadata import parse_banner
 from src.util import ssl_context
@@ -30,11 +30,12 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 MANIFEST_PATH = ROOT / "data" / "MANIFEST.json"
 
 VOYAGE_URL = "https://api.voyageai.com/v1/embeddings"
-# Free-tier Voyage limits (no payment method): 3 requests/min, 10K tokens/min.
-# Batches are sized by estimated tokens (chars/4) and requests are spaced out;
-# the 429 backoff in _post_with_retry remains as a safety net.
-EMBED_BATCH_TOKEN_BUDGET = 6000
-EMBED_REQUEST_DELAY_SECONDS = 40
+# Paid-tier Voyage limits (card on file): 2000 requests/min, 8M tokens/min.
+# Batches are sized by estimated tokens (chars/4) with a conservative budget;
+# the 429/network backoff in _post_with_retry remains as a safety net. Usage
+# stays inside the 200M free-token allowance; ingest prints tokens consumed.
+EMBED_BATCH_TOKEN_BUDGET = 30000
+EMBED_REQUEST_DELAY_SECONDS = 1
 EMBED_MAX_RETRIES = 8
 
 _last_request_at = 0.0
@@ -67,9 +68,14 @@ def _throttle() -> None:
     _last_request_at = time.monotonic()
 
 
+# Running total of Voyage tokens consumed by this process, for cost visibility.
+tokens_used = 0
+
+
 def embed_texts(texts: list[str], input_type: str = "document") -> list[list[float]]:
     """Embed texts with Voyage, batched. input_type 'document' at ingest time
     and 'query' at search time lets the model optimize each side."""
+    global tokens_used
     vectors: list[list[float]] = []
     for batch in _token_batches(texts):
         req = urllib.request.Request(
@@ -84,12 +90,18 @@ def embed_texts(texts: list[str], input_type: str = "document") -> list[list[flo
         )
         _throttle()
         data = _post_with_retry(req)
+        tokens_used += data.get("usage", {}).get("total_tokens", 0)
         vectors.extend(item["embedding"] for item in data["data"])
     return vectors
 
 
 def _post_with_retry(req: urllib.request.Request) -> dict:
-    """POST with exponential backoff on 429, honoring the Retry-After header."""
+    """POST with exponential backoff on 429 and on transient network errors.
+
+    429 honors the Retry-After header. URLError (DNS blips, dropped
+    connections, timeouts) gets the same backoff: a multi-hour ingest must
+    survive a momentary network wobble. Other HTTP errors raise immediately.
+    """
     for attempt in range(EMBED_MAX_RETRIES):
         try:
             with urllib.request.urlopen(req, context=ssl_context(), timeout=120) as resp:
@@ -101,24 +113,39 @@ def _post_with_retry(req: urllib.request.Request) -> dict:
             delay = float(retry_after) if retry_after else min(2.0**attempt, 60.0)
             print(f"      rate limited (429); retrying in {delay:.0f}s")
             time.sleep(delay)
+        except (urllib.error.URLError, TimeoutError) as exc:
+            if attempt == EMBED_MAX_RETRIES - 1:
+                raise
+            delay = min(2.0**attempt, 60.0)
+            print(f"      network error ({exc.reason if hasattr(exc, 'reason') else exc}); retrying in {delay:.0f}s")
+            time.sleep(delay)
     raise RuntimeError("unreachable")
 
 
-def ingest_document(conn: psycopg.Connection, entry: dict) -> tuple[int, dict]:
+CHUNKERS = {"section": (chunk_pages, "chunks"), "fixed": (fixed_chunks, "chunks_fixed")}
+
+
+def ingest_document(
+    conn: psycopg.Connection, entry: dict, chunker: str = "section"
+) -> tuple[int, dict]:
     """Ingest one manifest entry; return (chunks written, parsed banner).
 
     A document whose stored sha256 already matches the manifest entry is not
     re-embedded (-1 is returned); its banner is still parsed so the
     supersedes pass can run over every document on every run.
     """
+    chunk_fn, table = CHUNKERS[chunker]
     pages = load_pdf(ROOT / entry["local_path"])
     banner = parse_banner(pages[0])
     existing = conn.execute(
         "SELECT sha256 FROM documents WHERE id = %s", (entry["id"],)
     ).fetchone()
-    if existing and existing[0] == entry["sha256"]:
+    has_chunks = conn.execute(
+        f"SELECT 1 FROM {table} WHERE document_id = %s LIMIT 1", (entry["id"],)
+    ).fetchone()
+    if existing and existing[0] == entry["sha256"] and has_chunks:
         return -1, banner
-    chunks = chunk_pages(pages)
+    chunks = chunk_fn(pages)
     vectors = embed_texts([c["text"] for c in chunks])
 
     conn.execute(
@@ -133,15 +160,16 @@ def ingest_document(conn: psycopg.Connection, entry: dict) -> tuple[int, dict]:
         """,
         {**entry, "revision": banner["revision"]},
     )
-    conn.execute("DELETE FROM chunks WHERE document_id = %s", (entry["id"],))
+    conn.execute(f"DELETE FROM {table} WHERE document_id = %s", (entry["id"],))
+    id_prefix = entry["id"] if table == "chunks" else f"{entry['id']}:F"
     with conn.cursor() as cur:
         cur.executemany(
-            """
-            INSERT INTO chunks (id, document_id, section_path, page, text, embedding)
+            f"""
+            INSERT INTO {table} (id, document_id, section_path, page, text, embedding)
             VALUES (%s, %s, %s, %s, %s, %s)
             """,
             [
-                (f"{entry['id']}:{i:04d}", entry["id"], c["section_path"], c["page"], c["text"], v)
+                (f"{id_prefix}:{i:04d}", entry["id"], c["section_path"], c["page"], c["text"], v)
                 for i, (c, v) in enumerate(zip(chunks, vectors))
             ],
         )
@@ -176,7 +204,13 @@ def link_supersedes(conn: psycopg.Connection, banners: dict[str, tuple[str, dict
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", default="data/specs", help="corpus directory (informational)")
-    parser.parse_args()
+    parser.add_argument(
+        "--chunker",
+        default="section",
+        choices=sorted(CHUNKERS),
+        help="section (default) fills chunks; fixed fills chunks_fixed for baselines",
+    )
+    args = parser.parse_args()
 
     load_dotenv(ROOT / ".env")
     manifest = json.loads(MANIFEST_PATH.read_text())
@@ -189,7 +223,7 @@ def main() -> int:
             if not (ROOT / entry["local_path"]).exists():
                 print(f"skip {entry['id']}: {entry['local_path']} not downloaded")
                 continue
-            n, banner = ingest_document(conn, entry)
+            n, banner = ingest_document(conn, entry, args.chunker)
             banners[entry["id"]] = (entry["section_code"], banner)
             if n < 0:
                 print(f"skip {entry['id']}: unchanged (sha256 match)")
@@ -198,6 +232,7 @@ def main() -> int:
                 print(f"ok   {entry['id']}: {n} chunks")
         linked = link_supersedes(conn, banners)
         print(f"\ningested {total} chunks; {linked} supersedes link(s) set")
+        print(f"voyage tokens this run: {tokens_used:,}")
     return 0
 
 

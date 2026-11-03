@@ -7,6 +7,7 @@ from src.schemas import Citation, CitedResponse, GapReport, RFIRequest
 
 class AgentState(TypedDict, total=False):
     rfi: RFIRequest
+    retrieval_table: str
     rfi_type: str
     references: list[str]
     chunks: list[dict]
