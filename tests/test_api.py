@@ -7,6 +7,21 @@ from src.api import main as api_main
 from src.api.main import MAX_BODY_BYTES, SlidingWindowLimiter, app, create_app, get_graph
 from src.schemas import Citation, CitedResponse, GapReport
 
+# The real persist function, for tests that exercise its SQL directly.
+REAL_PERSIST_TRACE = api_main.persist_trace
+
+
+@pytest.fixture(autouse=True)
+def no_db_writes(monkeypatch):
+    """The suite must never write telemetry to the real database; persisted
+    calls are captured here instead. Tests that need the real function use
+    REAL_PERSIST_TRACE with a stubbed connection."""
+    calls = []
+    monkeypatch.setattr(
+        api_main, "persist_trace", lambda rfi, response, rfi_type, trace: calls.append(rfi.id)
+    )
+    yield calls
+
 
 @pytest.fixture(autouse=True)
 def fresh_rate_limiter(monkeypatch):
@@ -182,3 +197,120 @@ def test_cors_allows_configured_origin(monkeypatch):
         },
     )
     assert resp.headers["access-control-allow-origin"] == "https://console.example"
+
+
+# --- observability ---------------------------------------------------------
+
+
+def test_rfi_response_carries_usage_summary(no_db_writes):
+    client, _ = _client(CITED)
+    body = client.post(
+        "/rfi", json={"id": "rfi-u", "question": "What primer is required?"}
+    ).json()
+    assert body["usage"]["total_latency_ms"] >= 0
+    assert isinstance(body["usage"]["stages"], list)
+
+
+def test_gap_report_also_carries_usage(no_db_writes):
+    client, _ = _client(GAP)
+    body = client.post("/rfi", json={"id": "rfi-g", "question": "Elevator capacity?"}).json()
+    assert "reason" in body and "usage" in body
+
+
+def test_rfi_persists_telemetry_once_per_request(no_db_writes):
+    client, _ = _client(CITED)
+    client.post("/rfi", json={"id": "rfi-p", "question": "What primer is required?"})
+    assert no_db_writes == ["rfi-p"]
+
+
+def test_rate_limited_requests_persist_nothing(monkeypatch, no_db_writes):
+    monkeypatch.setattr(api_main, "rfi_limiter", SlidingWindowLimiter(0, 60.0))
+    client, _ = _client(CITED)
+    assert client.post("/rfi", json={"id": "rfi-x", "question": "q"}).status_code == 429
+    assert no_db_writes == []
+
+
+def test_persist_failure_never_breaks_the_answer(monkeypatch, no_db_writes):
+    def boom(conninfo, *a, **kw):
+        raise RuntimeError("db down")
+
+    monkeypatch.setattr(api_main, "persist_trace", REAL_PERSIST_TRACE)
+    monkeypatch.setattr(api_main.psycopg, "connect", boom)
+    client, _ = _client(CITED)
+    resp = client.post("/rfi", json={"id": "rfi-f", "question": "What primer is required?"})
+    assert resp.status_code == 200  # telemetry failure is logged, not surfaced
+
+
+class StubConnection:
+    """Records every execute/executemany; works as a context manager."""
+
+    def __init__(self):
+        self.executed = []
+        self.many = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def execute(self, sql, params=None):
+        self.executed.append((" ".join(sql.split()), params))
+
+    def cursor(self):
+        return self
+
+    def executemany(self, sql, rows):
+        self.many.append((" ".join(sql.split()), list(rows)))
+
+
+def _usage_two_stages():
+    from src.schemas import UsageStage, UsageSummary
+
+    return UsageSummary(
+        total_latency_ms=1500,
+        total_cost_usd=0.012,
+        stages=[
+            UsageStage(stage="classify", latency_ms=500, input_tokens=100,
+                       output_tokens=10, cost_usd=0.002, model="claude-sonnet-5"),
+            UsageStage(stage="draft", latency_ms=1000, input_tokens=900,
+                       output_tokens=80, cost_usd=0.010, model="claude-sonnet-5"),
+        ],
+    )
+
+
+def test_persist_trace_writes_request_and_stage_rows(monkeypatch):
+    from src.schemas import RFIRequest
+
+    stub = StubConnection()
+    monkeypatch.setenv("DATABASE_URL", "postgresql://stub")  # CI has no .env
+    monkeypatch.setattr(api_main.psycopg, "connect", lambda *a, **kw: stub)
+    response = CITED.model_copy(update={"usage": _usage_two_stages()})
+    REAL_PERSIST_TRACE(RFIRequest(id="rfi-sql", question="  What   Primer? "),
+                       response, "clarification", trace=None)
+
+    (request_sql, request_params), = stub.executed
+    assert "INSERT INTO rfi_requests" in request_sql
+    _, question_sha, rfi_type, verdict, latency, cost = request_params
+    assert (rfi_type, verdict, latency, cost) == ("clarification", "answered", 1500, 0.012)
+    import hashlib
+    assert question_sha == hashlib.sha256(b"what primer?").hexdigest()  # normalized + lowercased
+
+    (stage_sql, rows), = stub.many
+    assert "INSERT INTO rfi_request_stages" in stage_sql
+    assert [(r[1], r[2], r[3], r[4], r[5], r[6]) for r in rows] == [
+        ("classify", 500, 100, 10, 0.002, "claude-sonnet-5"),
+        ("draft", 1000, 900, 80, 0.010, "claude-sonnet-5"),
+    ]
+
+
+def test_persist_trace_records_gap_verdict(monkeypatch):
+    from src.schemas import RFIRequest
+
+    stub = StubConnection()
+    monkeypatch.setenv("DATABASE_URL", "postgresql://stub")  # CI has no .env
+    monkeypatch.setattr(api_main.psycopg, "connect", lambda *a, **kw: stub)
+    response = GAP.model_copy(update={"usage": _usage_two_stages()})
+    REAL_PERSIST_TRACE(RFIRequest(id="rfi-gv", question="q"), response, None, trace=None)
+    (_, request_params), = stub.executed
+    assert request_params[3] == "gap"

@@ -10,6 +10,7 @@ import os
 import re
 import urllib.request
 
+from src.agent.trace import record_usage
 from src.util import ssl_context
 
 API_URL = "https://api.anthropic.com/v1/messages"
@@ -50,5 +51,11 @@ def complete_json(system: str, user: str, max_tokens: int = 2048) -> dict:
     )
     with urllib.request.urlopen(req, context=ssl_context(), timeout=180) as resp:
         data = json.loads(resp.read())
+    usage = data.get("usage", {})
+    record_usage(
+        os.environ["LLM_MODEL"],
+        usage.get("input_tokens", 0),
+        usage.get("output_tokens", 0),
+    )
     text = "".join(block.get("text", "") for block in data["content"])
     return parse_json_reply(text)

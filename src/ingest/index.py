@@ -21,6 +21,7 @@ import psycopg
 from dotenv import load_dotenv
 from pgvector.psycopg import register_vector
 
+from src.agent.trace import record_usage
 from src.ingest.chunk import chunk_pages, fixed_chunks
 from src.ingest.loaders import load_pdf
 from src.ingest.metadata import parse_banner
@@ -90,7 +91,9 @@ def embed_texts(texts: list[str], input_type: str = "document") -> list[list[flo
         )
         _throttle()
         data = _post_with_retry(req)
-        tokens_used += data.get("usage", {}).get("total_tokens", 0)
+        batch_tokens = data.get("usage", {}).get("total_tokens", 0)
+        tokens_used += batch_tokens
+        record_usage(os.environ["EMBEDDING_MODEL"], batch_tokens, 0)
         vectors.extend(item["embedding"] for item in data["data"])
     return vectors
 
