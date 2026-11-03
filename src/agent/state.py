@@ -11,6 +11,7 @@ class AgentState(TypedDict, total=False):
     rfi_type: str
     references: list[str]
     chunks: list[dict]
+    query_embedding: list[float]
     superseded_notes: list[str]
     draft_answer: str
     draft_citations: list[Citation]

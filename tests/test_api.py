@@ -7,18 +7,26 @@ from src.api import main as api_main
 from src.api.main import MAX_BODY_BYTES, SlidingWindowLimiter, app, create_app, get_graph
 from src.schemas import Citation, CitedResponse, GapReport
 
-# The real persist function, for tests that exercise its SQL directly.
+# The real persist functions, for tests that exercise their SQL directly.
 REAL_PERSIST_TRACE = api_main.persist_trace
+REAL_PERSIST_GAP = api_main.persist_gap
 
 
 @pytest.fixture(autouse=True)
 def no_db_writes(monkeypatch):
     """The suite must never write telemetry to the real database; persisted
-    calls are captured here instead. Tests that need the real function use
-    REAL_PERSIST_TRACE with a stubbed connection."""
-    calls = []
+    calls are captured here instead. Tests that need the real functions use
+    REAL_PERSIST_TRACE / REAL_PERSIST_GAP with a stubbed connection."""
+    calls = {"trace": [], "gap": []}
     monkeypatch.setattr(
-        api_main, "persist_trace", lambda rfi, response, rfi_type, trace: calls.append(rfi.id)
+        api_main,
+        "persist_trace",
+        lambda rfi, response, rfi_type, trace: calls["trace"].append(rfi.id),
+    )
+    monkeypatch.setattr(
+        api_main,
+        "persist_gap",
+        lambda rfi, report, embedding: calls["gap"].append((rfi.id, embedding)),
     )
     yield calls
 
@@ -220,14 +228,15 @@ def test_gap_report_also_carries_usage(no_db_writes):
 def test_rfi_persists_telemetry_once_per_request(no_db_writes):
     client, _ = _client(CITED)
     client.post("/rfi", json={"id": "rfi-p", "question": "What primer is required?"})
-    assert no_db_writes == ["rfi-p"]
+    assert no_db_writes["trace"] == ["rfi-p"]
+    assert no_db_writes["gap"] == []  # answered requests never create gap rows
 
 
 def test_rate_limited_requests_persist_nothing(monkeypatch, no_db_writes):
     monkeypatch.setattr(api_main, "rfi_limiter", SlidingWindowLimiter(0, 60.0))
     client, _ = _client(CITED)
     assert client.post("/rfi", json={"id": "rfi-x", "question": "q"}).status_code == 429
-    assert no_db_writes == []
+    assert no_db_writes["trace"] == [] and no_db_writes["gap"] == []
 
 
 def test_persist_failure_never_breaks_the_answer(monkeypatch, no_db_writes):
@@ -314,3 +323,78 @@ def test_persist_trace_records_gap_verdict(monkeypatch):
     REAL_PERSIST_TRACE(RFIRequest(id="rfi-gv", question="q"), response, None, trace=None)
     (_, request_params), = stub.executed
     assert request_params[3] == "gap"
+
+
+# --- gap persistence ---------------------------------------------------------
+
+
+def test_gap_responses_persist_a_gap_with_the_query_embedding(no_db_writes):
+    fake = FakeGraph(GAP)
+    fake_embedding = [0.1] * 4
+    original_invoke = fake.invoke
+    fake.invoke = lambda state: {**original_invoke(state), "query_embedding": fake_embedding}
+    app.dependency_overrides[get_graph] = lambda: fake
+    client = TestClient(app)
+    client.post("/rfi", json={"id": "rfi-gap", "question": "Elevator capacity?"})
+    assert no_db_writes["gap"] == [("rfi-gap", fake_embedding)]
+
+
+def test_persist_gap_writes_row_with_conflict_dedup(monkeypatch):
+    from src.schemas import RFIRequest
+
+    stub = StubConnection()
+    monkeypatch.setenv("DATABASE_URL", "postgresql://stub")  # CI has no .env
+    monkeypatch.setattr(api_main.psycopg, "connect", lambda *a, **kw: stub)
+    REAL_PERSIST_GAP(
+        RFIRequest(id="rfi-gq", question="  Elevator   CAPACITY? "),
+        GAP,
+        [0.25, 0.75],
+    )
+    (sql, params), = stub.executed
+    assert "INSERT INTO gap_reports" in sql
+    assert "ON CONFLICT (question_sha256) WHERE closed_at IS NULL DO NOTHING" in sql
+    import hashlib
+    assert params[1] == "  Elevator   CAPACITY? "  # original text kept for replay
+    assert params[2] == hashlib.sha256(b"elevator capacity?").hexdigest()
+    assert params[3] == GAP.reason
+    assert params[5] == "[0.25, 0.75]"
+
+
+def test_persist_gap_failure_is_swallowed(monkeypatch):
+    from src.schemas import RFIRequest
+
+    monkeypatch.setenv("DATABASE_URL", "postgresql://stub")
+    monkeypatch.setattr(
+        api_main.psycopg, "connect", lambda *a, **kw: (_ for _ in ()).throw(RuntimeError("down"))
+    )
+    REAL_PERSIST_GAP(RFIRequest(id="r", question="q"), GAP, None)  # must not raise
+
+
+def test_gap_without_query_embedding_persists_none(no_db_writes):
+    client, _ = _client(GAP)  # plain FakeGraph: state has no query_embedding
+    client.post("/rfi", json={"id": "rfi-ne", "question": "Elevator capacity?"})
+    assert no_db_writes["gap"] == [("rfi-ne", None)]
+
+
+def test_persist_gap_with_none_embedding_writes_sql_null(monkeypatch):
+    from src.schemas import RFIRequest
+
+    stub = StubConnection()
+    monkeypatch.setenv("DATABASE_URL", "postgresql://stub")
+    monkeypatch.setattr(api_main.psycopg, "connect", lambda *a, **kw: stub)
+    REAL_PERSIST_GAP(RFIRequest(id="r", question="q"), GAP, None)
+    (_, params), = stub.executed
+    assert params[5] is None  # NULL, never the JSON string 'null'
+
+
+def test_ensure_schema_executes_init_sql_verbatim(monkeypatch):
+    stub = StubConnection()
+    monkeypatch.setenv("DATABASE_URL", "postgresql://stub")
+    monkeypatch.setattr(api_main.psycopg, "connect", lambda *a, **kw: stub)
+    api_main.ensure_schema()
+    (ddl, _), = stub.executed
+    # Single source of truth: the startup DDL IS db/init.sql, so the vector
+    # extension and the gap dedup partial index can never drift from it.
+    assert "CREATE EXTENSION IF NOT EXISTS vector" in ddl
+    assert "ON gap_reports (question_sha256) WHERE closed_at IS NULL" in ddl
+    assert "CREATE TABLE IF NOT EXISTS rfi_requests" in ddl

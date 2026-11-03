@@ -64,3 +64,21 @@ CREATE TABLE IF NOT EXISTS rfi_request_stages (
   model         TEXT,
   PRIMARY KEY (request_id, stage)
 );
+
+-- Open and closed knowledge gaps: every API GapReport lands here (best-effort)
+-- and scripts/gap_loop.py clusters and replays them.
+CREATE TABLE IF NOT EXISTS gap_reports (
+  id              TEXT PRIMARY KEY,
+  question        TEXT NOT NULL,
+  question_sha256 TEXT NOT NULL,
+  reason          TEXT NOT NULL,
+  searched        TEXT[] NOT NULL,
+  embedding       vector(1024),
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  closed_at       TIMESTAMPTZ,
+  closure_note    TEXT
+);
+
+-- The same unanswered question stays a single OPEN row; it may recur after closure.
+CREATE UNIQUE INDEX IF NOT EXISTS gap_reports_open_question_idx
+  ON gap_reports (question_sha256) WHERE closed_at IS NULL;
