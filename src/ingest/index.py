@@ -30,11 +30,12 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 MANIFEST_PATH = ROOT / "data" / "MANIFEST.json"
 
 VOYAGE_URL = "https://api.voyageai.com/v1/embeddings"
-# Free-tier Voyage limits (no payment method): 3 requests/min, 10K tokens/min.
-# Batches are sized by estimated tokens (chars/4) and requests are spaced out;
-# the 429 backoff in _post_with_retry remains as a safety net.
-EMBED_BATCH_TOKEN_BUDGET = 6000
-EMBED_REQUEST_DELAY_SECONDS = 40
+# Paid-tier Voyage limits (card on file): 2000 requests/min, 8M tokens/min.
+# Batches are sized by estimated tokens (chars/4) with a conservative budget;
+# the 429/network backoff in _post_with_retry remains as a safety net. Usage
+# stays inside the 200M free-token allowance; ingest prints tokens consumed.
+EMBED_BATCH_TOKEN_BUDGET = 30000
+EMBED_REQUEST_DELAY_SECONDS = 1
 EMBED_MAX_RETRIES = 8
 
 _last_request_at = 0.0
@@ -67,9 +68,14 @@ def _throttle() -> None:
     _last_request_at = time.monotonic()
 
 
+# Running total of Voyage tokens consumed by this process, for cost visibility.
+tokens_used = 0
+
+
 def embed_texts(texts: list[str], input_type: str = "document") -> list[list[float]]:
     """Embed texts with Voyage, batched. input_type 'document' at ingest time
     and 'query' at search time lets the model optimize each side."""
+    global tokens_used
     vectors: list[list[float]] = []
     for batch in _token_batches(texts):
         req = urllib.request.Request(
@@ -84,6 +90,7 @@ def embed_texts(texts: list[str], input_type: str = "document") -> list[list[flo
         )
         _throttle()
         data = _post_with_retry(req)
+        tokens_used += data.get("usage", {}).get("total_tokens", 0)
         vectors.extend(item["embedding"] for item in data["data"])
     return vectors
 
@@ -225,6 +232,7 @@ def main() -> int:
                 print(f"ok   {entry['id']}: {n} chunks")
         linked = link_supersedes(conn, banners)
         print(f"\ningested {total} chunks; {linked} supersedes link(s) set")
+        print(f"voyage tokens this run: {tokens_used:,}")
     return 0
 
 
