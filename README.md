@@ -2,7 +2,7 @@
 
 **A revision-aware agent that drafts cited answers to construction RFIs — and says "not found" instead of guessing.**
 
-> Status: 🚧 early development. MVP target: mid-November 2026.
+> **Live:** [Interactive console](https://aec-rfi.ruilinsun.com) · [Technical whitepaper](https://aec-rfi.blog.ruilinsun.com/whitepaper/) · [Medium: the headline result](https://medium.com/@garrolinlin/my-rag-pipeline-found-the-right-spec-every-time-and-cited-the-wrong-revision-62-of-the-time-bfd62da098d8)
 
 ## The problem
 
