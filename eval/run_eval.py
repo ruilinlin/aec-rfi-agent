@@ -187,6 +187,9 @@ def evaluate(config_name: str, split: str) -> dict:
             "answerable": item["answerable"],
             "abstained": output["abstained"],
             "citations": output["citations"],
+            # Stored for post-hoc judging; absent from pre-run-2 result files.
+            "answer": output.get("answer"),
+            "abstain_reason": output.get("abstain_reason"),
         }
         if item["answerable"] and not output["abstained"]:
             gold = item["gold_citations"]
