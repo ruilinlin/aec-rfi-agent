@@ -19,6 +19,7 @@ import hashlib
 import json
 import os
 import random
+import re
 import sys
 import time
 import urllib.request
@@ -76,9 +77,20 @@ def _request(method: str, url: str, key: str, payload: dict | None = None) -> by
 
 
 def _extract_json(text: str) -> dict:
-    start = text.index("{")
-    end = text.rindex("}") + 1
-    return json.loads(text[start:end])
+    try:
+        start = text.index("{")
+        end = text.rindex("}") + 1
+        return json.loads(text[start:end])
+    except (ValueError, json.JSONDecodeError):
+        # Truncated JSON still carries the grade; salvage it by pattern.
+        match = re.search(r'"grade"\s*:\s*"(correct|partial|incorrect)"', text)
+        if not match:
+            raise
+        reason = re.search(r'"reason"\s*:\s*"([^"]*)', text)
+        return {
+            "grade": match.group(1),
+            "reason": (reason.group(1) if reason else "") + " [truncated]",
+        }
 
 
 def load_bench(split: str) -> dict[str, dict]:
@@ -129,7 +141,7 @@ def build_request(pair: dict, clause_texts: list[str], model: str) -> dict:
         "custom_id": record["id"],
         "params": {
             "model": model,
-            "max_tokens": 300,
+            "max_tokens": 1500,
             "system": RUBRIC_SYSTEM,
             "messages": [{"role": "user", "content": user}],
         },
@@ -232,6 +244,28 @@ def main() -> int:
 
     batch_results = run_batch(requests, key, args.poll_seconds)
     verdicts, failed = parse_verdicts(batch_results)
+    # One direct (non-batch) retry per failure: empty responses and truncation
+    # are transient, and a missing verdict skews the aggregate more than the
+    # pennies a synchronous call costs.
+    requests_by_id = {r["custom_id"]: r for r in requests}
+    still_failed = []
+    for failure in failed:
+        item_id = failure.split(":")[0]
+        print(f"  retrying {failure}")
+        try:
+            raw = _request("POST", f"{API}/messages", key, requests_by_id[item_id]["params"])
+            message = json.loads(raw)
+            text = "".join(b["text"] for b in message["content"] if b["type"] == "text")
+            verdict = _extract_json(text)
+            if verdict.get("grade") not in GRADES:
+                raise ValueError(f"bad grade {verdict.get('grade')!r}")
+            verdicts[item_id] = {
+                "grade": verdict["grade"],
+                "reason": verdict.get("reason", "") + " [direct retry]",
+            }
+        except Exception as exc:  # noqa: BLE001 - record, never crash the report
+            still_failed.append(f"{failure}; retry: {type(exc).__name__}")
+    failed = still_failed
     for failure in failed:
         print(f"  FAILED {failure}")
 
